@@ -1,0 +1,29 @@
+<div class="auth-card">
+  <div class="auth-logo">
+    <span class="logo-bracket">[</span>KROXY<span class="logo-bracket">]</span>
+    <p class="auth-subtitle">Create Account</p>
+  </div>
+
+  <form class="auth-form" method="POST" action="/register">
+    <div class="form-group">
+      <label class="form-label">USERNAME</label>
+      <input type="text" name="username" class="form-input" placeholder="3–20 chars, a-z 0-9 _" required />
+    </div>
+    <div class="form-group">
+      <label class="form-label">EMAIL</label>
+      <input type="email" name="email" class="form-input" placeholder="you@example.com" required />
+    </div>
+    <div class="form-group">
+      <label class="form-label">PASSWORD</label>
+      <input type="password" name="password" class="form-input" placeholder="min 8 characters" required />
+    </div>
+    <div class="form-group">
+      <label class="form-label">CONFIRM PASSWORD</label>
+      <input type="password" name="confirm_password" class="form-input" placeholder="repeat password" required />
+    </div>
+    <button type="submit" class="btn btn-primary btn-full">CREATE ACCOUNT</button>
+  </form>
+
+  <p class="auth-switch">Already have an account? <a href="/login">Login</a></p>
+  <p class="auth-version">KROXY PANEL v1.0</p>
+</div>

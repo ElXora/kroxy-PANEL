@@ -1,0 +1,37 @@
+<div class="panel">
+  <div class="panel-header">
+    <h2 class="panel-title">ALL SERVERS</h2>
+    <a href="/servers/create" class="btn btn-primary">+ NEW SERVER</a>
+  </div>
+  <div class="panel-body">
+    <% if (!servers || servers.length === 0) { %>
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><rect x="2" y="10" width="20" height="5" rx="1"/><rect x="2" y="17" width="20" height="5" rx="1"/></svg>
+        <p>You have no servers.</p>
+        <a href="/servers/create" class="btn btn-primary">Create Server</a>
+      </div>
+    <% } else { %>
+      <table class="data-table">
+        <thead>
+          <tr><th>NAME</th><th>GAME</th><th>STATUS</th><th>PORT</th><th>RAM</th><th>VERSION</th><th>CREATED</th><th>ACTIONS</th></tr>
+        </thead>
+        <tbody>
+          <% servers.forEach(s => { %>
+          <tr>
+            <td><a href="/servers/<%= s._id %>" class="server-link"><%= s.name %></a></td>
+            <td><span class="badge badge-game">Minecraft</span></td>
+            <td><span class="status-dot status-<%= s.status %>"></span> <%= s.status.toUpperCase() %></td>
+            <td><code><%= s.port %></code></td>
+            <td><%= s.ram %>MB</td>
+            <td><%= s.version %></td>
+            <td><%= new Date(s.createdAt).toLocaleDateString() %></td>
+            <td class="actions-cell">
+              <a href="/servers/<%= s._id %>" class="btn btn-sm">MANAGE</a>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>
