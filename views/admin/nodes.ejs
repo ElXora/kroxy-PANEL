@@ -1,0 +1,231 @@
+<div class="nodes-wrap">
+
+  <!-- Add Node -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2 class="panel-title">ADD NODE</h2>
+    </div>
+    <div class="panel-body">
+      <form method="POST" action="/admin/nodes/create">
+
+        <div class="form-section">
+          <h3 class="form-section-title">LOCATION INFO</h3>
+          <div class="form-row form-row-3">
+            <div class="form-group">
+              <label class="form-label">NODE NAME <span class="required">*</span></label>
+              <input type="text" name="name" class="form-input" placeholder="e.g. US-East-1" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">REGION</label>
+              <select name="region" class="form-input form-select">
+                <option value="US-East">🇺🇸 US East</option>
+                <option value="US-West">🇺🇸 US West</option>
+                <option value="EU-West">🇪🇺 EU West</option>
+                <option value="EU-Central">🇩🇪 EU Central</option>
+                <option value="Asia-SE">🌏 Asia Southeast</option>
+                <option value="Asia-East">🇯🇵 Asia East</option>
+                <option value="AU-East">🇦🇺 Australia East</option>
+                <option value="SA-East">🇧🇷 South America</option>
+                <option value="Local">🖥️ Local / VPS</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">IP ADDRESS <span class="required">*</span></label>
+              <input type="text" name="ip" class="form-input" placeholder="e.g. 192.168.1.100" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">FQDN / HOSTNAME</label>
+              <input type="text" name="fqdn" class="form-input" placeholder="node1.kroxy.com" />
+              <span class="form-hint">Used as default connect address. Falls back to IP.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">MAX SERVERS</label>
+              <input type="number" name="maxServers" class="form-input" value="10" min="1" max="100" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">DAEMON PORT</label>
+              <input type="number" name="daemonPort" class="form-input" value="2375" />
+              <span class="form-hint">Docker API port on this node.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3 class="form-section-title">RESOURCE LIMITS</h3>
+          <p class="form-section-desc">Total resources available on this node. Servers allocated on this node cannot exceed these limits combined.</p>
+          <div class="form-row form-row-3">
+            <div class="form-group">
+              <label class="form-label">TOTAL RAM (MB)</label>
+              <input type="number" name="totalRamMB" class="form-input" value="4096" min="512" />
+              <span class="form-hint">e.g. 4096 = 4GB, 8192 = 8GB</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">TOTAL CPU (%)</label>
+              <input type="number" name="totalCpuPct" class="form-input" value="400" min="100" />
+              <span class="form-hint">100% = 1 core. 4 cores = 400%</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">TOTAL DISK (GB)</label>
+              <input type="number" name="totalDiskGB" class="form-input" value="50" min="1" />
+              <span class="form-hint">Total disk space for all servers</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3 class="form-section-title">
+            CLOUDFLARE TUNNEL
+            <span class="badge badge-cf">OPTIONAL</span>
+          </h3>
+          <p class="form-section-desc">
+            Use a Cloudflare Tunnel to expose this node publicly without opening firewall ports.
+            Your tunnel must be configured to point <code>http://localhost:8080</code> or <code>https://localhost:8443</code>
+            to your public hostname. <a href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/" target="_blank" class="link">Learn more →</a>
+          </p>
+          <div class="cf-toggle-wrap">
+            <label class="toggle-label">
+              <input type="checkbox" name="cfEnabled" id="cfEnabledToggle" onchange="toggleCfFields(this)" />
+              <span class="toggle-switch"></span>
+              ENABLE CLOUDFLARE TUNNEL
+            </label>
+          </div>
+          <div class="cf-fields" id="cfFields" style="display:none; margin-top:16px;">
+            <div class="cf-info-box">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <div>
+                <strong>Setup instructions:</strong>
+                <ol class="cf-steps">
+                  <li>Install cloudflared on this node: <code>curl -L https://pkg.cloudflare.com/cloudflare-main.gpg | sudo tee /usr/share/keyrings/cloudflare-main.gpg &gt;/dev/null && echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main" | sudo tee /etc/apt/sources.list.d/cloudflared.list && sudo apt install cloudflared</code></li>
+                  <li>Authenticate: <code>cloudflared tunnel login</code></li>
+                  <li>Create tunnel: <code>cloudflared tunnel create kroxy-node</code></li>
+                  <li>Route DNS: <code>cloudflared tunnel route dns kroxy-node node1.yourdomain.com</code></li>
+                  <li>Set tunnel URL below to <code>http://localhost:8080</code> and public hostname to your subdomain</li>
+                </ol>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">TUNNEL LOCAL URL</label>
+                <input type="text" name="cfTunnelUrl" class="form-input" placeholder="http://localhost:8080" />
+                <span class="form-hint">The local address cloudflared forwards to. Use :8080 (HTTP) or :8443 (HTTPS)</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label">PUBLIC HOSTNAME</label>
+                <input type="text" name="cfPublicHostname" class="form-input" placeholder="node1.yourdomain.com" />
+                <span class="form-hint">The public subdomain players will use to connect</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          ADD NODE
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Nodes List -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2 class="panel-title">ALL NODES (<%= nodes.length %>)</h2>
+    </div>
+    <div class="panel-body">
+      <% if (!nodes.length) { %>
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><line x1="12" y1="8" x2="5" y2="16"/><line x1="12" y1="8" x2="19" y2="16"/></svg>
+          <p>No nodes yet.</p>
+        </div>
+      <% } else { %>
+        <div class="nodes-grid">
+          <% nodes.forEach(n => {
+            const ramPct  = n.totalRamMB  ? Math.min((n.usedRamMB  / n.totalRamMB)  * 100, 100).toFixed(0) : 0;
+            const cpuPct  = n.totalCpuPct ? Math.min((n.usedCpuPct / n.totalCpuPct) * 100, 100).toFixed(0) : 0;
+            const diskPct = n.totalDiskGB ? Math.min((n.usedDiskGB / n.totalDiskGB) * 100, 100).toFixed(0) : 0;
+          %>
+          <div class="node-card node-<%= n.status %>">
+            <div class="node-card-header">
+              <div class="node-status-row">
+                <span class="status-dot status-<%= n.status === 'online' ? 'running' : 'error' %>"></span>
+                <span class="node-status-label"><%= n.status.toUpperCase() %></span>
+                <% if (n.cfEnabled) { %>
+                  <span class="badge badge-cf" title="Cloudflare Tunnel active">CF TUNNEL</span>
+                <% } %>
+              </div>
+              <div class="node-actions">
+                <button class="btn btn-sm btn-ghost" onclick="toggleNode('<%= n._id %>', this)">
+                  <%= n.status === 'online' ? 'MAINTENANCE' : 'BRING ONLINE' %>
+                </button>
+                <form method="POST" action="/admin/nodes/<%= n._id %>/delete" style="display:inline"
+                      onsubmit="return confirm('Delete node <%= n.name %>?')">
+                  <button type="submit" class="btn btn-sm btn-danger">DELETE</button>
+                </form>
+              </div>
+            </div>
+
+            <div class="node-name"><%= n.name %></div>
+            <div class="node-region">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 00-8 8c0 5.25 8 13 8 13s8-7.75 8-13a8 8 0 00-8-8z"/></svg>
+              <%= n.region %>
+            </div>
+
+            <div class="node-details">
+              <div class="node-detail-row">
+                <span class="node-detail-label">IP</span><code><%= n.ip %></code>
+              </div>
+              <div class="node-detail-row">
+                <span class="node-detail-label">FQDN</span><code><%= n.fqdn %></code>
+              </div>
+              <% if (n.cfEnabled && n.cfPublicHostname) { %>
+              <div class="node-detail-row">
+                <span class="node-detail-label">CF HOSTNAME</span><code><%= n.cfPublicHostname %></code>
+              </div>
+              <div class="node-detail-row">
+                <span class="node-detail-label">TUNNEL URL</span><code><%= n.cfTunnelUrl %></code>
+              </div>
+              <% } %>
+              <div class="node-detail-row">
+                <span class="node-detail-label">SERVERS</span>
+                <span class="<%= n.serverCount >= n.maxServers ? 'text-red' : '' %>"><%= n.serverCount %> / <%= n.maxServers %></span>
+              </div>
+            </div>
+
+            <!-- Resource bars -->
+            <div class="node-resources">
+              <div class="node-res-row">
+                <span class="node-res-label">RAM</span>
+                <div class="node-res-bar"><div class="node-res-fill <%= ramPct > 80 ? 'res-warn' : '' %>" style="width:<%= ramPct %>%"></div></div>
+                <span class="node-res-val"><%= n.usedRamMB %>/<%= n.totalRamMB %>MB</span>
+              </div>
+              <div class="node-res-row">
+                <span class="node-res-label">CPU</span>
+                <div class="node-res-bar"><div class="node-res-fill <%= cpuPct > 80 ? 'res-warn' : '' %>" style="width:<%= cpuPct %>%"></div></div>
+                <span class="node-res-val"><%= n.usedCpuPct %>/<%= n.totalCpuPct %>%</span>
+              </div>
+              <div class="node-res-row">
+                <span class="node-res-label">DISK</span>
+                <div class="node-res-bar"><div class="node-res-fill <%= diskPct > 80 ? 'res-warn' : '' %>" style="width:<%= diskPct %>%"></div></div>
+                <span class="node-res-val"><%= n.usedDiskGB %>/<%= n.totalDiskGB %>GB</span>
+              </div>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleCfFields(cb) {
+  document.getElementById('cfFields').style.display = cb.checked ? 'block' : 'none';
+}
+async function toggleNode(id, btn) {
+  btn.disabled = true;
+  const res = await fetch(`/admin/nodes/${id}/toggle`, { method: 'POST' });
+  const data = await res.json();
+  if (data.success) location.reload();
+  else btn.disabled = false;
+}
+</script>

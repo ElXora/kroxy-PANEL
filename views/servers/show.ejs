@@ -1,0 +1,184 @@
+<div class="server-manage-wrap">
+
+  <!-- Server header -->
+  <div class="server-header-card">
+    <div class="server-header-info">
+      <div class="server-game-badge">MC</div>
+      <div>
+        <h2 class="server-title"><%= server.name %></h2>
+        <p class="server-meta">
+          Port <code><%= server.port %></code> · <%= server.ram %>MB RAM · v<%= server.version %>
+          <% if (node) { %>
+            · <svg viewBox="0 0 24 24" style="width:12px;height:12px;display:inline;vertical-align:middle"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><line x1="12" y1="8" x2="5" y2="16"/><line x1="12" y1="8" x2="19" y2="16"/></svg>
+            <strong><%= node.name %></strong> (<%= node.region %>) — <code><%= node.fqdn || node.ip %></code>
+          <% } %>
+        </p>
+      </div>
+    </div>
+    <div class="server-header-status">
+      <span class="status-pill status-<%= server.status %>" id="statusPill">
+        <span class="status-dot-lg status-<%= server.status %>"></span>
+        <span id="statusText"><%= server.status.toUpperCase() %></span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Control buttons -->
+  <div class="server-controls">
+    <button class="btn btn-success" id="btnStart" onclick="serverAction('start')" <%= server.status === 'running' ? 'disabled' : '' %>>
+      <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> START
+    </button>
+    <button class="btn btn-warning" id="btnStop" onclick="serverAction('stop')" <%= server.status !== 'running' ? 'disabled' : '' %>>
+      <svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> STOP
+    </button>
+    <button class="btn btn-ghost" id="btnRestart" onclick="serverAction('restart')" <%= server.status !== 'running' ? 'disabled' : '' %>>
+      <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> RESTART
+    </button>
+    <form method="POST" action="/servers/<%= server._id %>/delete" style="margin-left:auto"
+          onsubmit="return confirm('Delete this server? This cannot be undone.')">
+      <button type="submit" class="btn btn-danger">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg> DELETE
+      </button>
+    </form>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row stats-server">
+    <div class="stat-card">
+      <div class="stat-label">CPU USAGE</div>
+      <div class="stat-value" id="statCpu">—</div>
+      <div class="stat-bar"><div class="stat-bar-fill" id="cpuBar" style="width:0%"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">MEMORY</div>
+      <div class="stat-value" id="statMem">—</div>
+      <div class="stat-bar"><div class="stat-bar-fill" id="memBar" style="width:0%"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">STATUS</div>
+      <div class="stat-value" id="statStatus"><%= server.status.toUpperCase() %></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">ADDRESS</div>
+      <div class="stat-value addr-copy" onclick="copyAddr()" title="Click to copy">
+        <code id="serverAddr">your-ip:<%= server.port %></code>
+        <svg viewBox="0 0 24 24" style="width:14px;opacity:.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Console -->
+  <div class="panel console-panel">
+    <div class="panel-header">
+      <h2 class="panel-title">CONSOLE</h2>
+      <div class="console-controls">
+        <span class="ws-status" id="wsStatus">● DISCONNECTED</span>
+        <button class="btn btn-sm btn-ghost" onclick="clearConsole()">CLEAR</button>
+      </div>
+    </div>
+    <div class="console-output" id="consoleOutput">
+      <div class="console-placeholder">Console output will appear here once connected...</div>
+    </div>
+    <div class="console-input-row">
+      <span class="console-prompt">$</span>
+      <input type="text" id="consoleInput" class="console-input" placeholder="Type a command..." />
+      <button class="btn btn-primary btn-sm" onclick="sendCommand()">SEND</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SERVER_ID = '<%= server._id %>';
+const USER_ID = '<%= user._id %>';
+const consoleOutput = document.getElementById('consoleOutput');
+let ws = null;
+let firstLog = true;
+
+function connectWs() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws/console?serverId=${SERVER_ID}&userId=${USER_ID}`);
+
+  ws.onopen = () => {
+    document.getElementById('wsStatus').textContent = '● CONNECTED';
+    document.getElementById('wsStatus').style.color = 'var(--green)';
+  };
+  ws.onclose = () => {
+    document.getElementById('wsStatus').textContent = '● DISCONNECTED';
+    document.getElementById('wsStatus').style.color = 'var(--muted)';
+    setTimeout(connectWs, 3000);
+  };
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'log') appendLog(msg.data);
+  };
+}
+
+function appendLog(text) {
+  if (firstLog) { consoleOutput.innerHTML = ''; firstLog = false; }
+  const el = document.createElement('div');
+  el.className = 'console-line';
+  el.textContent = text;
+  consoleOutput.appendChild(el);
+  consoleOutput.scrollTop = consoleOutput.scrollHeight;
+}
+
+function clearConsole() {
+  consoleOutput.innerHTML = '<div class="console-placeholder">Console cleared.</div>';
+}
+
+function sendCommand() {
+  const input = document.getElementById('consoleInput');
+  const cmd = input.value.trim();
+  if (!cmd || !ws || ws.readyState !== 1) return;
+  ws.send(JSON.stringify({ type: 'command', command: cmd }));
+  input.value = '';
+}
+
+document.getElementById('consoleInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendCommand();
+});
+
+// Server actions
+async function serverAction(action) {
+  const btns = ['btnStart','btnStop','btnRestart'];
+  btns.forEach(b => { const el = document.getElementById(b); if(el) el.disabled = true; });
+
+  const res = await fetch(`/servers/${SERVER_ID}/${action}`, { method: 'POST' });
+  const data = await res.json();
+  if (data.success) setTimeout(() => location.reload(), 1200);
+  else {
+    alert('Action failed: ' + (data.message || 'unknown error'));
+    btns.forEach(b => { const el = document.getElementById(b); if(el) el.disabled = false; });
+  }
+}
+
+// Stats polling
+async function pollStats() {
+  try {
+    const res = await fetch(`/api/servers/${SERVER_ID}/stats`);
+    const s = await res.json();
+    document.getElementById('statCpu').textContent = s.cpu + '%';
+    document.getElementById('statMem').textContent = s.mem + 'MB / ' + s.memLimit + 'MB';
+    document.getElementById('statStatus').textContent = (s.status||'unknown').toUpperCase();
+    document.getElementById('cpuBar').style.width = Math.min(s.cpu, 100) + '%';
+    document.getElementById('memBar').style.width = s.memPct + '%';
+
+    const pill = document.getElementById('statusPill');
+    const statusText = document.getElementById('statusText');
+    pill.className = 'status-pill status-' + s.status;
+    statusText.textContent = (s.status||'unknown').toUpperCase();
+  } catch(e){}
+}
+
+function copyAddr() {
+  const addr = document.getElementById('serverAddr').textContent;
+  navigator.clipboard.writeText(addr);
+  document.querySelector('.addr-copy').style.opacity = '.5';
+  setTimeout(() => document.querySelector('.addr-copy').style.opacity = '1', 800);
+}
+
+connectWs();
+setInterval(pollStats, 3000);
+pollStats();
+</script>

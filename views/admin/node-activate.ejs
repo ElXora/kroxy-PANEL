@@ -1,0 +1,194 @@
+<div class="activate-page">
+  <div class="activate-header">
+    <div class="activate-status-badge status-<%= node.status %>">
+      <span class="status-dot status-<%= node.status === 'online' ? 'running' : node.status === 'pending' ? 'installing' : 'error' %>"></span>
+      <%= node.status.toUpperCase() %>
+    </div>
+    <h2 class="activate-title">ACTIVATE NODE: <%= node.name %></h2>
+    <p class="activate-desc">Follow the steps below to install the Kroxy daemon on your node server and bring it online.</p>
+  </div>
+
+  <div class="activate-grid">
+
+    <!-- Step 1: Install daemon -->
+    <div class="activate-step">
+      <div class="step-num">01</div>
+      <div class="step-body">
+        <h3 class="step-title">SSH INTO YOUR NODE SERVER</h3>
+        <p class="step-desc">Connect to your node server as root.</p>
+        <div class="code-block">
+          <button class="code-copy" onclick="copyCode(this)">COPY</button>
+          <pre>ssh root@<%= node.ip %></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Install Docker -->
+    <div class="activate-step">
+      <div class="step-num">02</div>
+      <div class="step-body">
+        <h3 class="step-title">INSTALL DOCKER (if not already installed)</h3>
+        <div class="code-block">
+          <button class="code-copy" onclick="copyCode(this)">COPY</button>
+          <pre>curl -fsSL https://get.docker.com | sh && systemctl enable docker && systemctl start docker</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Install daemon -->
+    <div class="activate-step">
+      <div class="step-num">03</div>
+      <div class="step-body">
+        <h3 class="step-title">INSTALL KROXY DAEMON</h3>
+        <p class="step-desc">The daemon lets the panel communicate with Docker on this node. It must run on port <strong><%= node.daemonPort %></strong>.</p>
+        <div class="code-block">
+          <button class="code-copy" onclick="copyCode(this)">COPY</button>
+          <pre>mkdir -p /opt/kroxy-daemon && cat > /opt/kroxy-daemon/daemon.js << 'EOF'
+const http  = require('http');
+const { exec } = require('child_process');
+
+const TOKEN = '<%= node.daemonToken %>';
+const PORT  = <%= node.daemonPort %>;
+const PANEL = '<%= process.env.APP_URL || "http://YOUR-PANEL-IP:3000" %>';
+const NODE_ID = '<%= node._id %>';
+
+const server = http.createServer((req, res) => {
+  const auth = req.headers['x-daemon-token'];
+  if (auth !== TOKEN) {
+    res.writeHead(401); res.end(JSON.stringify({ error: 'Unauthorized' })); return;
+  }
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ status: 'ok', node: NODE_ID }));
+});
+
+server.listen(PORT, () => {
+  console.log('Kroxy daemon running on port ' + PORT);
+  heartbeat();
+  setInterval(heartbeat, 30000);
+});
+
+async function heartbeat() {
+  try {
+    const opts = { hostname: new URL(PANEL).hostname, port: new URL(PANEL).port || 80, path: '/admin/nodes/' + NODE_ID + '/heartbeat', method: 'POST', headers: { 'Content-Type': 'application/json', 'x-daemon-token': TOKEN } };
+    const req = http.request(opts, r => r.resume());
+    req.on('error', () => {});
+    req.end(JSON.stringify({ token: TOKEN }));
+  } catch(e) {}
+}
+EOF
+node /opt/kroxy-daemon/daemon.js &</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Auto start -->
+    <div class="activate-step">
+      <div class="step-num">04</div>
+      <div class="step-body">
+        <h3 class="step-title">AUTO-START ON REBOOT (systemd)</h3>
+        <div class="code-block">
+          <button class="code-copy" onclick="copyCode(this)">COPY</button>
+          <pre>cat > /etc/systemd/system/kroxy-daemon.service << EOF
+[Unit]
+Description=Kroxy Node Daemon
+After=network.target docker.service
+
+[Service]
+ExecStart=/usr/bin/node /opt/kroxy-daemon/daemon.js
+Restart=always
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload && systemctl enable kroxy-daemon && systemctl start kroxy-daemon</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: Cloudflare (if enabled) -->
+    <% if (node.cfEnabled) { %>
+    <div class="activate-step step-cf">
+      <div class="step-num">05</div>
+      <div class="step-body">
+        <h3 class="step-title">CLOUDFLARE TUNNEL SETUP</h3>
+        <p class="step-desc">Your node has Cloudflare Tunnel enabled. The tunnel must point <code><%= node.cfPublicHostname %></code> → <code><%= node.cfTunnelUrl || 'http://localhost:' + node.daemonPort %></code>.</p>
+        <div class="code-block">
+          <button class="code-copy" onclick="copyCode(this)">COPY</button>
+          <pre># Install cloudflared
+curl -L https://pkg.cloudflare.com/cloudflare-main.gpg | sudo tee /usr/share/keyrings/cloudflare-main.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main" | sudo tee /etc/apt/sources.list.d/cloudflared.list
+sudo apt update && sudo apt install cloudflared
+
+# Authenticate and create tunnel
+cloudflared tunnel login
+cloudflared tunnel create kroxy-<%= node.name.toLowerCase().replace(/\s/g,'-') %>
+
+# Route your hostname to this node's daemon
+cloudflared tunnel route dns kroxy-<%= node.name.toLowerCase().replace(/\s/g,'-') %> <%= node.cfPublicHostname %>
+
+# Run tunnel (forwards <%= node.cfPublicHostname %> → <%= node.cfTunnelUrl || 'http://localhost:' + node.daemonPort %>)
+cloudflared tunnel run --url <%= node.cfTunnelUrl || 'http://localhost:' + node.daemonPort %> kroxy-<%= node.name.toLowerCase().replace(/\s/g,'-') %></pre>
+        </div>
+        <div class="cf-note">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Minecraft servers on this node will be joinable at <strong><%= node.cfPublicHostname %>:PORT</strong> (no firewall ports needed)
+        </div>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Token info -->
+    <div class="activate-step step-token">
+      <div class="step-num"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <div class="step-body">
+        <h3 class="step-title">YOUR DAEMON TOKEN</h3>
+        <p class="step-desc">This token authenticates your daemon with the panel. Keep it secret.</p>
+        <div class="token-display">
+          <code id="daemonToken"><%= node.daemonToken %></code>
+          <button class="btn btn-sm btn-ghost" onclick="copyToken()">COPY</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Actions -->
+  <div class="activate-actions">
+    <form method="POST" action="/admin/nodes/<%= node._id %>/force-online" style="display:inline">
+      <button type="submit" class="btn btn-success">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        MARK AS ONLINE (Local/Testing)
+      </button>
+    </form>
+    <a href="/admin/nodes" class="btn btn-ghost">BACK TO NODES</a>
+  </div>
+
+  <% if (node.status === 'online') { %>
+  <div class="flash flash-success" style="margin-top:16px">
+    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    Node is online and connected!
+  </div>
+  <% } %>
+</div>
+
+<script>
+function copyCode(btn) {
+  const pre = btn.nextElementSibling;
+  navigator.clipboard.writeText(pre.textContent.trim());
+  btn.textContent = 'COPIED!';
+  setTimeout(() => btn.textContent = 'COPY', 2000);
+}
+function copyToken() {
+  navigator.clipboard.writeText(document.getElementById('daemonToken').textContent);
+}
+
+// Poll for activation
+<% if (node.status !== 'online') { %>
+setInterval(async () => {
+  const res = await fetch(location.href).then(r => r.text());
+  if (res.includes('Node is online')) location.reload();
+}, 5000);
+<% } %>
+</script>

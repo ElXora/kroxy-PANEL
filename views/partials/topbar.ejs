@@ -1,0 +1,15 @@
+<header class="topbar">
+  <div class="topbar-left">
+    <button class="sidebar-toggle" id="sidebarToggle">
+      <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <h1 class="page-heading"><%= pageTitle ? pageTitle.split(' —')[0] : 'Kroxy' %></h1>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-kxy">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10"/></svg>
+      <span id="topbar-kxy-val"><%= user ? (user.kxy || 0) : 0 %></span> KXY
+    </div>
+    <div class="topbar-user"><%= user ? user.username : '' %></div>
+  </div>
+</header>

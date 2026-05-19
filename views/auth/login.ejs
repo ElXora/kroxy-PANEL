@@ -1,0 +1,26 @@
+<div class="auth-card">
+  <div class="auth-logo">
+    <span class="logo-bracket">[</span>KROXY<span class="logo-bracket">]</span>
+    <p class="auth-subtitle">Game Server Panel</p>
+  </div>
+
+  <form class="auth-form" method="POST" action="/login">
+    <div class="form-group">
+      <label class="form-label">USERNAME OR EMAIL</label>
+      <input type="text" name="username" class="form-input" placeholder="enter your username" autocomplete="username" required />
+    </div>
+    <div class="form-group">
+      <label class="form-label">PASSWORD</label>
+      <div class="input-wrap">
+        <input type="password" name="password" class="form-input" placeholder="••••••••" autocomplete="current-password" required id="pwdInput" />
+        <button type="button" class="input-eye" onclick="togglePwd('pwdInput',this)">
+          <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary btn-full">LOGIN</button>
+  </form>
+
+  <p class="auth-switch">No account? <a href="/register">Register here</a></p>
+  <p class="auth-version">KROXY PANEL v1.0</p>
+</div>
