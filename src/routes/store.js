@@ -4,16 +4,20 @@ const db = require('../db');
 
 // Store items config
 const STORE_ITEMS = [
-  { id: 'ram_512',    name: '512MB RAM',      type: 'ram',     amount: 512,  price: 50,   unit: 'MB',  icon: 'ram' },
-  { id: 'ram_1024',   name: '1GB RAM',         type: 'ram',     amount: 1024, price: 90,   unit: 'MB',  icon: 'ram' },
-  { id: 'ram_2048',   name: '2GB RAM',         type: 'ram',     amount: 2048, price: 160,  unit: 'MB',  icon: 'ram' },
-  { id: 'disk_5',     name: '5GB Disk',        type: 'disk',    amount: 5,    price: 40,   unit: 'GB',  icon: 'disk' },
-  { id: 'disk_10',    name: '10GB Disk',       type: 'disk',    amount: 10,   price: 70,   unit: 'GB',  icon: 'disk' },
-  { id: 'disk_25',    name: '25GB Disk',       type: 'disk',    amount: 25,   price: 150,  unit: 'GB',  icon: 'disk' },
-  { id: 'cpu_50',     name: '50% CPU',         type: 'cpu',     amount: 50,   price: 45,   unit: '%',   icon: 'cpu' },
-  { id: 'cpu_100',    name: '100% CPU (1 core)',type: 'cpu',     amount: 100,  price: 80,   unit: '%',   icon: 'cpu' },
-  { id: 'slot_1',     name: '1 Server Slot',   type: 'servers', amount: 1,    price: 200,  unit: 'slot',icon: 'server' },
-  { id: 'slot_3',     name: '3 Server Slots',  type: 'servers', amount: 3,    price: 500,  unit: 'slot',icon: 'server' },
+  { id: 'ram_512',    name: '512MB RAM',        type: 'ram',     amount: 512,  price: 800,   unit: 'MB',  icon: 'ram' },
+  { id: 'ram_1024',   name: '1GB RAM',           type: 'ram',     amount: 1024, price: 1500,  unit: 'MB',  icon: 'ram' },
+  { id: 'ram_2048',   name: '2GB RAM',           type: 'ram',     amount: 2048, price: 2800,  unit: 'MB',  icon: 'ram' },
+  { id: 'ram_4096',   name: '4GB RAM',           type: 'ram',     amount: 4096, price: 5000,  unit: 'MB',  icon: 'ram' },
+  { id: 'disk_5',     name: '5GB Disk',          type: 'disk',    amount: 5,    price: 600,   unit: 'GB',  icon: 'disk' },
+  { id: 'disk_10',    name: '10GB Disk',         type: 'disk',    amount: 10,   price: 1100,  unit: 'GB',  icon: 'disk' },
+  { id: 'disk_25',    name: '25GB Disk',         type: 'disk',    amount: 25,   price: 2500,  unit: 'GB',  icon: 'disk' },
+  { id: 'disk_50',    name: '50GB Disk',         type: 'disk',    amount: 50,   price: 4500,  unit: 'GB',  icon: 'disk' },
+  { id: 'cpu_50',     name: '50% CPU',           type: 'cpu',     amount: 50,   price: 700,   unit: '%',   icon: 'cpu' },
+  { id: 'cpu_100',    name: '100% CPU (1 core)', type: 'cpu',     amount: 100,  price: 1200,  unit: '%',   icon: 'cpu' },
+  { id: 'cpu_200',    name: '200% CPU (2 cores)',type: 'cpu',     amount: 200,  price: 2200,  unit: '%',   icon: 'cpu' },
+  { id: 'slot_1',     name: '1 Server Slot',     type: 'servers', amount: 1,    price: 3500,  unit: 'slot',icon: 'server' },
+  { id: 'slot_3',     name: '3 Server Slots',    type: 'servers', amount: 3,    price: 9000,  unit: 'slot',icon: 'server' },
+  { id: 'slot_5',     name: '5 Server Slots',    type: 'servers', amount: 5,    price: 14000, unit: 'slot',icon: 'server' },
 ];
 
 router.get('/', async (req, res) => {

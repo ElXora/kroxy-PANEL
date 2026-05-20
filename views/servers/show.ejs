@@ -1,3 +1,101 @@
+<% if (server.status === 'installing') { %>
+<div class="install-overlay" id="installOverlay">
+  <div class="install-spinner"></div>
+  <div class="install-title">INSTALLING SERVER</div>
+  <div class="install-sub">Setting up your Minecraft server. This usually takes 1–3 minutes.</div>
+
+  <div class="install-steps">
+    <div class="install-step step-done" id="istep-1">
+      <svg class="install-step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      Creating server directory
+    </div>
+    <div class="install-step step-active" id="istep-2">
+      <svg class="install-step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+      Pulling Docker image
+    </div>
+    <div class="install-step" id="istep-3">
+      <svg class="install-step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="5" rx="1"/></svg>
+      Creating container
+    </div>
+    <div class="install-step" id="istep-4">
+      <svg class="install-step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+      Starting server
+    </div>
+  </div>
+
+  <div class="install-bar-wrap">
+    <div class="install-bar" id="installBar" style="width:25%"></div>
+  </div>
+  <div class="install-progress-pct" id="installPct">Pulling image...</div>
+
+  <% if (server.installError) { %>
+  <div class="flash flash-error" style="margin-top:8px">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Install Error: <%= server.installError %>
+    <form method="POST" action="/servers/<%= server._id %>/reinstall" style="display:inline;margin-left:10px">
+      <button type="submit" class="btn btn-sm btn-primary">RETRY</button>
+    </form>
+  </div>
+  <% } %>
+</div>
+
+<script>
+// Poll install status every 3s
+let installPct = 25;
+const steps = ['istep-1','istep-2','istep-3','istep-4'];
+let stepIdx = 1;
+
+const stepMsgs = ['Creating directory...', 'Pulling Docker image...', 'Creating container...', 'Starting server...'];
+
+async function pollInstall() {
+  try {
+    const res  = await fetch('/api/servers/<%= server._id %>/install-status');
+    const data = await res.json();
+
+    if (data.ready && data.status !== 'installing') {
+      // Done — reload page
+      document.getElementById('installPct').textContent = 'Done! Loading...';
+      document.getElementById('installBar').style.width = '100%';
+      setTimeout(() => location.reload(), 800);
+      return;
+    }
+
+    if (data.status === 'error') {
+      document.getElementById('installPct').textContent = 'Error: ' + (data.error || 'Unknown error');
+      document.getElementById('installPct').style.color = 'var(--red)';
+      steps.forEach(s => document.getElementById(s).classList.remove('step-active'));
+      return;
+    }
+
+    // Animate progress
+    installPct = Math.min(installPct + 8, 90);
+    document.getElementById('installBar').style.width = installPct + '%';
+
+    // Step animation
+    if (installPct > 30 && stepIdx < 2) { activateStep(2); stepIdx = 2; }
+    if (installPct > 55 && stepIdx < 3) { activateStep(3); stepIdx = 3; }
+    if (installPct > 75 && stepIdx < 4) { activateStep(4); stepIdx = 4; }
+
+    document.getElementById('installPct').textContent = stepMsgs[Math.min(stepIdx - 1, 3)];
+
+    setTimeout(pollInstall, 3000);
+  } catch(e) {
+    setTimeout(pollInstall, 5000);
+  }
+}
+
+function activateStep(n) {
+  for (let i = 1; i < n; i++) {
+    const el = document.getElementById('istep-' + i);
+    if (el) { el.classList.remove('step-active'); el.classList.add('step-done'); }
+  }
+  const active = document.getElementById('istep-' + n);
+  if (active) active.classList.add('step-active');
+}
+
+pollInstall();
+</script>
+<% } else { %>
 <div class="server-manage-wrap">
 
   <!-- Server header -->
@@ -24,18 +122,6 @@
       </span>
     </div>
   </div>
-
-  <!-- Installing Banner (shown when container is being created) -->
-  <% if (server.status === 'installing') { %>
-  <div class="installing-banner" id="installingBanner">
-    <div class="install-spinner"></div>
-    <div>
-      <div style="font-weight:700;margin-bottom:3px">CONTAINER BEING CREATED</div>
-      <div style="color:rgba(250,204,21,.7);font-size:10px">Pulling Docker image & setting up server... This may take 1–3 minutes.</div>
-    </div>
-    <div class="install-bar"><div class="install-bar-fill"></div></div>
-  </div>
-  <% } %>
 
   <!-- Control buttons -->
   <div class="server-controls">
@@ -112,7 +198,6 @@
       <div class="panel-header">
         <h2 class="panel-title">CONSOLE</h2>
         <div style="display:flex;gap:10px;align-items:center">
-          <span class="lps-badge" id="lpsBadge">0 LPS</span>
           <span class="ws-status" id="wsStatus">● CONNECTING...</span>
           <button class="btn btn-sm btn-ghost" onclick="clearConsole()">CLEAR</button>
         </div>
@@ -419,7 +504,6 @@ function updateWsStatus(text, ok) {
 function appendLog(text) {
   if (firstLog) { consoleOut.innerHTML = ''; firstLog = false; }
   const lines = text.split('\n');
-  _lpsCount += lines.filter(l => l.trim()).length;
   lines.forEach(line => {
     if (!line && lines[lines.length-1] === line) return;
     const el = document.createElement('div');
@@ -456,39 +540,20 @@ async function serverAction(action) {
 }
 
 // ===== STATS POLLING =====
-let _lpsLines = 0, _lpsCount = 0;
-setInterval(() => {
-  const badge = document.getElementById('lpsBadge');
-  if (badge) {
-    badge.textContent = _lpsCount + ' LPS';
-    badge.className = 'lps-badge' + (_lpsCount > 0 ? ' lps-active' : '');
-    _lpsCount = 0;
-  }
-}, 1000);
-
 async function pollStats() {
   try {
     const res  = await fetch(`/api/servers/${SERVER_ID}/stats`);
     const s    = await res.json();
-    const currentStatus = s.status || 'unknown';
-
-    // If was installing and now has a container, reload to update UI
-    const banner = document.getElementById('installingBanner');
-    if (banner && currentStatus !== 'installing') {
-      location.reload(); return;
-    }
-    // If still installing, keep polling fast
-    if (currentStatus === 'installing') return;
-
     document.getElementById('statCpu').textContent = s.cpu + '%';
     document.getElementById('statMem').textContent = s.mem + 'MB / ' + s.memLimit + 'MB';
-    document.getElementById('statStatus').textContent = currentStatus.toUpperCase();
+    document.getElementById('statStatus').textContent = (s.status||'unknown').toUpperCase();
     document.getElementById('cpuBar').style.width  = Math.min(s.cpu, 100) + '%';
     document.getElementById('memBar').style.width  = s.memPct + '%';
     const pill = document.getElementById('statusPill');
-    if (pill) pill.className = 'status-pill status-' + currentStatus;
-    document.getElementById('statusText').textContent = currentStatus.toUpperCase();
-    document.getElementById('statusDot').className = 'status-dot-lg status-' + (currentStatus === 'running' ? 'running' : 'offline');
+    if (pill) pill.className = 'status-pill status-' + s.status;
+    document.getElementById('statusText').textContent = (s.status||'unknown').toUpperCase();
+    document.getElementById('statusDot').className = 'status-dot-lg status-' + (s.status==='running'?'running':'offline');
+    document.getElementById('statStatus').textContent = (s.status||'unknown').toUpperCase();
   } catch(e) {}
 }
 
@@ -787,6 +852,7 @@ async function addSubUser() {
 // Init
 connectWs();
 pollStats();
-// Poll every 2s — when installing, this catches the moment containerId is set and reloads
-setInterval(pollStats, 2000);
+setInterval(pollStats, 4000);
 </script>
+
+<% } %>

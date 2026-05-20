@@ -118,13 +118,36 @@ router.post('/create', async (req, res) => {
     createdAt: new Date(),
   });
 
-  docker.createMinecraftServer(server).then(async (result) => {
-    if (result.success) {
-      await db.servers.update({ _id: server._id }, { $set: { containerId: result.containerId, status: 'offline', updatedAt: new Date() } });
-    } else {
-      await db.servers.update({ _id: server._id }, { $set: { status: 'error', updatedAt: new Date() } });
+  // Run async — don't await, let client poll for status
+  setImmediate(async () => {
+    try {
+      console.log(`[Server] Creating container for ${server._id} (${server.name})...`);
+      const result = await docker.createMinecraftServer(server);
+      if (result.success) {
+        console.log(`[Server] Container created: ${result.containerId.substring(0,12)}`);
+        await db.servers.update({ _id: server._id }, { $set: {
+          containerId: result.containerId,
+          status: 'offline',
+          installError: null,
+          updatedAt: new Date(),
+        }});
+      } else {
+        console.error(`[Server] Container creation failed: ${result.error}`);
+        await db.servers.update({ _id: server._id }, { $set: {
+          status: 'error',
+          installError: result.error || 'Docker error',
+          updatedAt: new Date(),
+        }});
+      }
+    } catch(e) {
+      console.error('[Server] Unexpected error during install:', e.message);
+      await db.servers.update({ _id: server._id }, { $set: {
+        status: 'error',
+        installError: e.message,
+        updatedAt: new Date(),
+      }}).catch(() => {});
     }
-  }).catch(() => db.servers.update({ _id: server._id }, { $set: { status: 'error' } }));
+  });
 
   req.flash('success', `Server "${name}" created on ${node.name}! Connect: ${connectHost}:${portNum}`);
   res.redirect('/servers/' + server._id);

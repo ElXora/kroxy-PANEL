@@ -9,11 +9,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <!-- Page Load Overlay -->
-  <div id="pageLoadOverlay">
-    <div class="plo-logo"><span class="bracket">[</span> KRYOXI <span class="bracket">]</span></div>
-    <div class="plo-bar"><div class="plo-bar-fill"></div></div>
-    <div class="plo-text" id="ploText">Loading...</div>
+  <!-- Page loader -->
+  <div class="page-loader" id="pageLoader">
+    <div class="loader-logo"><span class="logo-bracket">[</span>KROXY<span class="logo-bracket">]</span></div>
+    <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+    <div class="loader-text">LOADING</div>
   </div>
 
   <%- include('../partials/sidebar') %>
@@ -29,31 +29,19 @@
 
   <script src="/js/main.js"></script>
   <script>
-    // Page load overlay
-    (function() {
-      const overlay = document.getElementById('pageLoadOverlay');
-      const ploText = document.getElementById('ploText');
-      const msgs = ['Connecting to daemon...', 'Syncing nodes...', 'Loading panel...', 'Almost ready...'];
-      let i = 0;
-      const ti = setInterval(() => { if (ploText && msgs[++i]) ploText.textContent = msgs[i]; }, 400);
-      window.addEventListener('load', () => {
-        clearInterval(ti);
-        setTimeout(() => {
-          overlay.classList.add('fade-out');
-          setTimeout(() => overlay.remove(), 400);
-        }, 150);
-      });
-    })();
-    // Nav loading indicator
-    document.addEventListener('click', function(e) {
-      const a = e.target.closest('a[href]');
-      if (!a) return;
-      const href = a.getAttribute('href');
-      if (!href || href.startsWith('#') || href.startsWith('javascript') || a.target === '_blank') return;
-      const overlay = document.createElement('div');
-      overlay.id = 'pageLoadOverlay';
-      overlay.innerHTML = '<div class="plo-logo"><span class="bracket">[</span> KRYOXI <span class="bracket">]</span></div><div class="plo-bar"><div class="plo-bar-fill"></div></div><div class="plo-text">Loading...</div>';
-      document.body.appendChild(overlay);
+    // Hide loader when page is ready
+    window.addEventListener('load', () => {
+      const loader = document.getElementById('pageLoader');
+      if (loader) {
+        setTimeout(() => loader.classList.add('hidden'), 200);
+      }
+    });
+    // Also hide on DOMContentLoaded as fallback
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        const loader = document.getElementById('pageLoader');
+        if (loader) loader.classList.add('hidden');
+      }, 400);
     });
   </script>
   <% if (typeof extraScript !== 'undefined') { %>

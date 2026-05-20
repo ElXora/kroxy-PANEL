@@ -23,9 +23,7 @@ function formatSize(bytes) {
 // ===== SERVER STATS =====
 router.get('/servers/:id/stats', async (req, res) => {
   const server = await db.servers.findOne({ _id: req.params.id, userId: res.locals.user._id });
-  if (!server) return res.json({ cpu:0, mem:0, memLimit:0, memPct:0, status: 'unknown' });
-  // If no container yet, return DB status (covers 'installing')
-  if (!server.containerId) return res.json({ cpu:0, mem:0, memLimit:0, memPct:0, status: server.status || 'installing' });
+  if (!server || !server.containerId) return res.json({ cpu:0, mem:0, memLimit:0, memPct:0, status: server?.status||'unknown' });
   const [stats, status] = await Promise.all([
     docker.getStats(server.containerId).catch(() => ({ cpu:0, mem:0, memLimit:0, memPct:0 })),
     docker.getStatus(server.containerId).catch(() => 'unknown'),
@@ -35,6 +33,29 @@ router.get('/servers/:id/stats', async (req, res) => {
     await db.servers.update({ _id: server._id }, { $set: { status, updatedAt: new Date() } });
   }
   res.json({ ...stats, status });
+});
+
+
+// Install status — polls until container is ready
+router.get('/servers/:id/install-status', async (req, res) => {
+  const server = await db.servers.findOne({ _id: req.params.id, userId: res.locals.user._id });
+  if (!server) return res.json({ status: 'error', message: 'Not found' });
+  
+  let dockerStatus = null;
+  if (server.containerId) {
+    dockerStatus = await docker.getStatus(server.containerId).catch(() => null);
+    if (dockerStatus && dockerStatus !== server.status) {
+      await db.servers.update({ _id: server._id }, { $set: { status: dockerStatus } });
+      server.status = dockerStatus;
+    }
+  }
+  
+  return res.json({
+    status:      server.status,
+    containerId: server.containerId,
+    error:       server.installError || null,
+    ready:       !!server.containerId && server.status !== 'installing',
+  });
 });
 
 // ===== FILE MANAGER API =====
