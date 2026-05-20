@@ -1,0 +1,148 @@
+<div class="store-page">
+  <div class="store-header">
+    <div>
+      <h2 class="store-title">KXY STORE</h2>
+      <p class="store-desc">Spend your KXY coins to upgrade your hosting resources.</p>
+    </div>
+    <div class="store-balance">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10"/></svg>
+      <span id="store-kxy-balance"><%= user.kxy || 0 %></span>
+      <span class="store-balance-label">KXY</span>
+    </div>
+  </div>
+
+  <div class="store-current-resources">
+    <span class="store-res"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/></svg> RAM: <strong><%= user.maxRamMB || 2048 %>MB</strong></span>
+    <span class="store-res"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> Disk: <strong><%= user.maxDiskGB || 10 %>GB</strong></span>
+    <span class="store-res"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> CPU: <strong><%= user.maxCpuPct || 100 %>%</strong></span>
+    <span class="store-res"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><rect x="2" y="10" width="20" height="5" rx="1"/><rect x="2" y="17" width="20" height="5" rx="1"/></svg> Servers: <strong><%= user.maxServers || 3 %></strong></span>
+  </div>
+
+  <% const categories = ['ram','disk','cpu','servers','kxy']; %>
+  <% const catLabels  = { ram:'RAM', disk:'DISK', cpu:'CPU', servers:'SERVER SLOTS', kxy:'BONUSES' }; %>
+
+  <% categories.forEach(cat => { %>
+  <% const catItems = items.filter(i => i.type === cat); %>
+  <% if (catItems.length) { %>
+  <div class="store-section">
+    <h3 class="store-section-title"><%= catLabels[cat] %></h3>
+    <div class="store-grid">
+      <% catItems.forEach(item => { %>
+      <div class="store-card <%= item.special ? 'store-card-special' : '' %>">
+        <% if (item.special) { %>
+          <div class="store-card-badge"><%= item.special_label %></div>
+        <% } %>
+        <div class="store-card-icon store-icon-<%= item.type %>">
+          <% if (item.type === 'ram') { %>
+            <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <% } else if (item.type === 'disk') { %>
+            <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          <% } else if (item.type === 'cpu') { %>
+            <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <% } else if (item.type === 'servers') { %>
+            <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><rect x="2" y="10" width="20" height="5" rx="1"/><rect x="2" y="17" width="20" height="5" rx="1"/></svg>
+          <% } else { %>
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10"/></svg>
+          <% } %>
+        </div>
+        <div class="store-card-info">
+          <span class="store-card-name"><%= item.name %></span>
+          <span class="store-card-amount">+<%= item.amount %> <%= item.unit %></span>
+        </div>
+        <div class="store-card-footer">
+          <span class="store-card-price <%= item.price === 0 ? 'price-free' : '' %>">
+            <%= item.price === 0 ? 'FREE' : item.price + ' KXY' %>
+          </span>
+          <button class="btn btn-primary btn-sm store-buy-btn"
+            data-item="<%= item.id %>"
+            data-price="<%= item.price %>"
+            data-name="<%= item.name %>"
+            onclick="buyItem(this)">
+            BUY
+          </button>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+  </div>
+  <% } %>
+  <% }) %>
+
+  <!-- Purchase confirm modal -->
+  <div class="modal-overlay" id="buyModal" style="display:none" onclick="if(event.target===this)closeBuyModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">CONFIRM PURCHASE</h3>
+        <button class="modal-close" onclick="closeBuyModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="buy-confirm-text">Are you sure you want to buy <strong id="buy-item-name"></strong> for <strong id="buy-item-price" class="kxy-highlight"></strong>?</p>
+        <div class="buy-balance-info">
+          Your balance: <span id="buy-current-bal" class="kxy-highlight"></span> KXY
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeBuyModal()">CANCEL</button>
+        <button class="btn btn-primary" id="confirmBuyBtn" onclick="confirmBuy()">CONFIRM</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="store-toast" id="storeToast" style="display:none"></div>
+
+<script>
+let pendingItemId = null;
+let pendingBtn    = null;
+
+function buyItem(btn) {
+  pendingItemId = btn.dataset.item;
+  pendingBtn    = btn;
+  document.getElementById('buy-item-name').textContent  = btn.dataset.name;
+  document.getElementById('buy-item-price').textContent = btn.dataset.price === '0' ? 'FREE' : btn.dataset.price + ' KXY';
+  document.getElementById('buy-current-bal').textContent = document.getElementById('store-kxy-balance').textContent;
+  document.getElementById('buyModal').style.display = 'flex';
+}
+
+function closeBuyModal() {
+  document.getElementById('buyModal').style.display = 'none';
+  pendingItemId = null; pendingBtn = null;
+}
+
+function showStoreToast(msg, ok) {
+  const t = document.getElementById('storeToast');
+  t.textContent = msg;
+  t.className = 'store-toast ' + (ok ? 'toast-success' : 'toast-error');
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+async function confirmBuy() {
+  if (!pendingItemId) return;
+  const confirmBtn = document.getElementById('confirmBuyBtn');
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = '...';
+
+  const res  = await fetch('/store/buy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itemId: pendingItemId }),
+  });
+  const data = await res.json();
+  closeBuyModal();
+  confirmBtn.disabled = false;
+  confirmBtn.textContent = 'CONFIRM';
+
+  if (data.success) {
+    document.getElementById('store-kxy-balance').textContent = data.kxy;
+    const sidebarKxy = document.getElementById('sidebar-kxy');
+    const topbarKxy  = document.getElementById('topbar-kxy-val');
+    if (sidebarKxy) sidebarKxy.textContent = data.kxy;
+    if (topbarKxy)  topbarKxy.textContent  = data.kxy;
+    showStoreToast('✓ ' + data.message, true);
+    setTimeout(() => location.reload(), 1500);
+  } else {
+    showStoreToast('✗ ' + data.message, false);
+  }
+}
+</script>

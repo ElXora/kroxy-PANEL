@@ -1,0 +1,276 @@
+<div class="dashboard-grid">
+
+  <!-- KXY + Daily Reward row -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-servers"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><rect x="2" y="10" width="20" height="5" rx="1"/><rect x="2" y="17" width="20" height="5" rx="1"/></svg></div>
+      <div class="stat-info">
+        <span class="stat-value"><%= totalServers %> / <%= maxServers %></span>
+        <span class="stat-label">SERVER SLOTS</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-running"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg></div>
+      <div class="stat-info">
+        <span class="stat-value"><%= runningServers %></span>
+        <span class="stat-label">RUNNING</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-coins"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10"/></svg></div>
+      <div class="stat-info">
+        <span class="stat-value" id="kxy-display"><%= user.kxy || 0 %></span>
+        <span class="stat-label">KXY COINS</span>
+      </div>
+    </div>
+    <a href="/daily" class="stat-card daily-reward-card" style="text-decoration:none">
+      <div class="stat-icon stat-icon-reward"><svg viewBox="0 0 24 24"><path d="M12 2c0 0-6 5.686-6 10a6 6 0 0012 0C18 7.686 12 2 12 2z" fill="currentColor" stroke="none"/></svg></div>
+      <div class="stat-info">
+        <span class="stat-value"><%= dailyRewardKxy %>+</span>
+        <span class="stat-label">DAILY REWARD</span>
+      </div>
+      <% if (canClaim) { %>
+        <span class="btn btn-primary reward-btn" style="margin-top:4px">CLAIM →</span>
+      <% } else { %>
+        <span class="reward-timer-small" id="rewardTimer">--:--:--</span>
+      <% } %>
+    </a>
+  </div>
+
+  <!-- Quick links to economy pages -->
+  <div class="quick-links-row">
+    <a href="/daily" class="quick-link-card <%= canClaim ? 'quick-link-highlight' : '' %>">
+      <svg viewBox="0 0 24 24"><path d="M12 2c0 0-6 5.686-6 10a6 6 0 0012 0C18 7.686 12 2 12 2z" fill="currentColor" stroke="none"/></svg>
+      <div class="ql-info">
+        <span class="ql-title">DAILY REWARD</span>
+        <span class="ql-sub"><%= canClaim ? 'Ready to claim!' : 'Come back tomorrow' %></span>
+      </div>
+      <% if (canClaim) { %><span class="ql-badge">CLAIM</span><% } %>
+    </a>
+    <a href="/afk" class="quick-link-card">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <div class="ql-info">
+        <span class="ql-title">AFK COINS</span>
+        <span class="ql-sub">+<%= afkRewardKxy %> KXY every <%= afkIntervalSec %>s</span>
+      </div>
+    </a>
+    <a href="/store" class="quick-link-card">
+      <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      <div class="ql-info">
+        <span class="ql-title">KXY STORE</span>
+        <span class="ql-sub">Buy RAM, Disk, CPU, Slots</span>
+      </div>
+    </a>
+    <a href="/redeem" class="quick-link-card">
+      <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      <div class="ql-info">
+        <span class="ql-title">REDEEM CODE</span>
+        <span class="ql-sub">Enter a coupon code</span>
+      </div>
+    </a>
+  </div>
+
+  <!-- Resource Allocation Panel -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2 class="panel-title">YOUR ALLOCATION</h2>
+      <span class="panel-subtitle">Resources assigned to your account</span>
+    </div>
+    <div class="panel-body">
+      <div class="resource-grid">
+
+        <%
+          function resColor(used, max) {
+            const pct = max > 0 ? (used / max) * 100 : 0;
+            if (pct >= 85) return 'res-red';
+            if (pct >= 50) return 'res-yellow';
+            return 'res-green';
+          }
+          const ramPct  = maxRamMB  > 0 ? Math.min((usedRamMB  / maxRamMB)  * 100, 100) : 0;
+          const cpuPct  = maxCpuPct > 0 ? Math.min((usedCpuPct / maxCpuPct) * 100, 100) : 0;
+          const diskPct = maxDiskGB > 0 ? Math.min((usedDiskGB / maxDiskGB) * 100, 100) : 0;
+          const srvPct  = maxServers > 0 ? Math.min((totalServers / maxServers) * 100, 100) : 0;
+        %>
+
+        <div class="res-item">
+          <div class="res-header">
+            <span class="res-label">RAM</span>
+            <span class="res-values"><%= usedRamMB %>MB <span class="res-sep">/</span> <%= maxRamMB %>MB</span>
+          </div>
+          <div class="res-bar-wrap">
+            <div class="res-bar">
+              <div class="res-bar-fill <%= resColor(usedRamMB, maxRamMB) %>" style="width:<%= ramPct.toFixed(1) %>%"></div>
+            </div>
+            <span class="res-pct <%= resColor(usedRamMB, maxRamMB) %>"><%= ramPct.toFixed(0) %>%</span>
+          </div>
+        </div>
+
+        <div class="res-item">
+          <div class="res-header">
+            <span class="res-label">CPU</span>
+            <span class="res-values"><%= usedCpuPct %>% <span class="res-sep">/</span> <%= maxCpuPct %>%</span>
+          </div>
+          <div class="res-bar-wrap">
+            <div class="res-bar">
+              <div class="res-bar-fill <%= resColor(usedCpuPct, maxCpuPct) %>" style="width:<%= cpuPct.toFixed(1) %>%"></div>
+            </div>
+            <span class="res-pct <%= resColor(usedCpuPct, maxCpuPct) %>"><%= cpuPct.toFixed(0) %>%</span>
+          </div>
+        </div>
+
+        <div class="res-item">
+          <div class="res-header">
+            <span class="res-label">DISK</span>
+            <span class="res-values"><%= usedDiskGB %>GB <span class="res-sep">/</span> <%= maxDiskGB %>GB</span>
+          </div>
+          <div class="res-bar-wrap">
+            <div class="res-bar">
+              <div class="res-bar-fill <%= resColor(usedDiskGB, maxDiskGB) %>" style="width:<%= diskPct.toFixed(1) %>%"></div>
+            </div>
+            <span class="res-pct <%= resColor(usedDiskGB, maxDiskGB) %>"><%= diskPct.toFixed(0) %>%</span>
+          </div>
+        </div>
+
+        <div class="res-item">
+          <div class="res-header">
+            <span class="res-label">SERVERS</span>
+            <span class="res-values"><%= totalServers %> <span class="res-sep">/</span> <%= maxServers %></span>
+          </div>
+          <div class="res-bar-wrap">
+            <div class="res-bar">
+              <div class="res-bar-fill <%= resColor(totalServers, maxServers) %>" style="width:<%= srvPct.toFixed(1) %>%"></div>
+            </div>
+            <span class="res-pct <%= resColor(totalServers, maxServers) %>"><%= srvPct.toFixed(0) %>%</span>
+          </div>
+        </div>
+
+      </div>
+      <p class="res-hint">Need more resources? Redeem a coupon code below or contact an admin.</p>
+    </div>
+  </div>
+
+    <!-- Redeem Coupon -->
+    <div class="panel">
+      <div class="panel-header"><h2 class="panel-title">REDEEM CODE</h2></div>
+      <div class="panel-body">
+        <p class="panel-desc">Have a coupon code? Redeem it to get KXY coins, extra RAM, disk, CPU, or server slots.</p>
+        <div class="redeem-form">
+          <input type="text" id="redeemInput" class="form-input" placeholder="ENTER-CODE-HERE" style="text-transform:uppercase" />
+          <button class="btn btn-primary" onclick="redeemCode()">REDEEM</button>
+        </div>
+        <div class="redeem-result" id="redeemResult" style="display:none"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Servers -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2 class="panel-title">YOUR SERVERS</h2>
+      <a href="/servers/create" class="btn btn-primary btn-sm">+ NEW SERVER</a>
+    </div>
+    <div class="panel-body">
+      <% if (!servers.length) { %>
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><rect x="2" y="10" width="20" height="5" rx="1"/><rect x="2" y="17" width="20" height="5" rx="1"/></svg>
+          <p>No servers yet.</p>
+          <a href="/servers/create" class="btn btn-primary">Create your first server</a>
+        </div>
+      <% } else { %>
+        <table class="data-table">
+          <thead><tr><th>NAME</th><th>STATUS</th><th>CONNECT</th><th>RAM</th><th>NODE</th><th>ACTIONS</th></tr></thead>
+          <tbody>
+            <% servers.forEach(s => { %>
+            <tr>
+              <td><a href="/servers/<%= s._id %>" class="server-link"><%= s.name %></a></td>
+              <td><span class="status-dot status-<%= s.status %>"></span> <%= s.status.toUpperCase() %></td>
+              <td><code class="addr-copy-inline" onclick="copyText('<%= s.connectAddress || '' %>', this)" title="Click to copy"><%= s.connectAddress || '—' %></code></td>
+              <td><%= s.ram %>MB</td>
+              <td><%= s.nodeName || '—' %></td>
+              <td><a href="/servers/<%= s._id %>" class="btn btn-sm">MANAGE</a></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Activity -->
+  <div class="panel">
+    <div class="panel-header"><h2 class="panel-title">RECENT ACTIVITY</h2></div>
+    <div class="panel-body">
+      <% if (!activity.length) { %>
+        <p class="muted-text">No activity yet.</p>
+      <% } else { %>
+        <ul class="activity-list">
+          <% activity.forEach(a => { %>
+          <li class="activity-item">
+            <span class="activity-action"><%= a.action.replace(/_/g,' ') %></span>
+            <span class="activity-detail"><%= a.details %></span>
+            <span class="activity-time"><%= new Date(a.createdAt).toLocaleString() %></span>
+          </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Daily reward countdown on dashboard (small timer)
+const rewardTimerEl = document.getElementById('rewardTimer');
+if (rewardTimerEl) {
+  let ms = <%= nextRewardMs %>;
+  function tickDaily() {
+    if (ms <= 0) { rewardTimerEl.textContent = 'Ready!'; return; }
+    const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000), s = Math.floor((ms%60000)/1000);
+    rewardTimerEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    ms -= 1000;
+  }
+  tickDaily(); setInterval(tickDaily, 1000);
+}
+
+// AFK reward system
+const AFK_INTERVAL = <%= afkIntervalSec %> * 1000;
+let afkRemaining = AFK_INTERVAL;
+const afkTimerEl = document.getElementById('afkTimer');
+const afkIcon    = document.getElementById('afkIcon');
+const afkToast   = document.getElementById('afkToast');
+
+async function afkTick() {
+  afkRemaining -= 1000;
+  if (afkTimerEl) afkTimerEl.textContent = Math.max(0, Math.round(afkRemaining / 1000)) + 's';
+  if (afkRemaining <= 0) {
+    try {
+      const res = await fetch('/dashboard/afk-reward', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('kxy-display').textContent = data.kxy;
+        document.getElementById('sidebar-kxy').textContent = data.kxy;
+        document.getElementById('topbar-kxy-val').textContent = data.kxy;
+        afkToast.style.display = 'block';
+        afkIcon.classList.add('afk-pulse');
+        setTimeout(() => { afkToast.style.display = 'none'; afkIcon.classList.remove('afk-pulse'); }, 2000);
+        afkRemaining = AFK_INTERVAL;
+      } else {
+        afkRemaining = data.wait || AFK_INTERVAL;
+      }
+    } catch(e) { afkRemaining = AFK_INTERVAL; }
+  }
+}
+setInterval(afkTick, 1000);
+
+}
+document.getElementById('redeemInput').addEventListener('keydown', e => { if (e.key === 'Enter') redeemCode(); });
+
+function copyText(text, el) {
+  if (!text) return;
+  navigator.clipboard.writeText(text);
+  const orig = el.textContent;
+  el.textContent = 'copied!';
+  setTimeout(() => el.textContent = orig, 1000);
+}
+</script>

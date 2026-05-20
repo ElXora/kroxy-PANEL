@@ -1,0 +1,59 @@
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-bracket">[</span>KROXY<span class="logo-bracket">]</span>
+    <button class="sidebar-close-btn" id="sidebarCloseBtn" title="Close sidebar">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">MAIN</div>
+    <a href="/dashboard" class="nav-item <%= pageTitle && pageTitle.includes('Dashboard') ? 'active' : '' %>">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard
+    </a>
+    <a href="/servers" class="nav-item <%= pageTitle && (pageTitle.includes('Server')||pageTitle.includes('Files')||pageTitle.includes('Edit')) ? 'active' : '' %>">
+      <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><rect x="2" y="10" width="20" height="5" rx="1"/><rect x="2" y="17" width="20" height="5" rx="1"/><circle cx="18" cy="5.5" r="1" fill="currentColor"/><circle cx="18" cy="12.5" r="1" fill="currentColor"/></svg>Servers
+    </a>
+    <div class="nav-section-label">ECONOMY</div>
+    <div class="nav-item kxy-nav">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10"/></svg>
+      <span id="sidebar-kxy"><%= user ? (user.kxy||0) : 0 %></span>&nbsp;KXY
+    </div>
+    <a href="/daily" class="nav-item <%= pageTitle && pageTitle.includes('Daily') ? 'active' : '' %>">
+      <svg viewBox="0 0 24 24"><path d="M12 2c0 0-6 5.686-6 10a6 6 0 0012 0C18 7.686 12 2 12 2z" fill="currentColor" stroke="none"/></svg>Daily Reward
+    </a>
+    <a href="/store" class="nav-item <%= pageTitle && pageTitle.includes('Store') ? 'active' : '' %>">
+      <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Store
+    </a>
+    <a href="/afk" class="nav-item <%= pageTitle && pageTitle.includes('AFK') ? 'active' : '' %>">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>AFK Coins
+    </a>
+    <a href="/redeem" class="nav-item <%= pageTitle && pageTitle.includes('Redeem') ? 'active' : '' %>">
+      <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Redeem Code
+    </a>
+    <div class="nav-section-label">ACCOUNT</div>
+    <a href="/account" class="nav-item <%= pageTitle && pageTitle.includes('Account') ? 'active' : '' %>">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Account
+    </a>
+    <% if (user && user.isAdmin) { %>
+    <div class="nav-section-label">ADMIN</div>
+    <a href="/admin" class="nav-item <%= pageTitle && pageTitle.includes('Admin') && !pageTitle.includes('Node') && !pageTitle.includes('Activate') ? 'active' : '' %>">
+      <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Admin Panel
+    </a>
+    <a href="/admin/nodes" class="nav-item <%= pageTitle && (pageTitle.includes('Node')||pageTitle.includes('Activate')) ? 'active' : '' %>">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><line x1="12" y1="8" x2="5" y2="16"/><line x1="12" y1="8" x2="19" y2="16"/></svg>Nodes
+    </a>
+    <% } %>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <div class="user-avatar"><%= user ? user.username[0].toUpperCase() : '?' %></div>
+      <div class="user-info">
+        <span class="user-name"><%= user ? user.username : '' %></span>
+        <span class="user-role"><%= user && user.isAdmin ? 'Administrator' : 'User' %></span>
+      </div>
+    </div>
+    <a href="/logout" class="logout-btn" title="Logout">
+      <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+    </a>
+  </div>
+</aside>

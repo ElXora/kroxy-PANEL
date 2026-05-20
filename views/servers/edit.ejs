@@ -1,0 +1,102 @@
+<div class="editor-page">
+  <div class="server-subnav">
+    <a href="/servers/<%= server._id %>" class="subnav-item">CONSOLE</a>
+    <a href="/servers/<%= server._id %>/files" class="subnav-item">FILES</a>
+    <span class="subnav-item active">EDITING: <%= fileName %></span>
+  </div>
+
+  <div class="editor-header">
+    <div class="editor-file-info">
+      <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+      <span class="editor-filename"><%= filePath %></span>
+    </div>
+    <div class="editor-actions">
+      <span class="editor-status" id="editorStatus">Unsaved</span>
+      <button class="btn btn-primary" onclick="saveFile()">
+        <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        SAVE
+      </button>
+      <a href="/servers/<%= server._id %>/files?path=<%= filePath.split('/').slice(0,-1).join('/') || '/' %>" class="btn btn-ghost">BACK</a>
+    </div>
+  </div>
+
+  <div class="editor-wrap">
+    <div class="editor-line-numbers" id="lineNumbers"></div>
+    <textarea class="code-editor" id="codeEditor" spellcheck="false"><%= content %></textarea>
+  </div>
+
+  <div class="editor-footer">
+    <span id="editorCursorPos">Ln 1, Col 1</span>
+    <span>· <%= fileName.split('.').pop().toUpperCase() %></span>
+    <span id="editorByteCount"></span>
+  </div>
+</div>
+
+<script>
+const SERVER_ID = '<%= server._id %>';
+const FILE_PATH = '<%= filePath %>';
+const editor    = document.getElementById('codeEditor');
+const lineNums  = document.getElementById('lineNumbers');
+const statusEl  = document.getElementById('editorStatus');
+let saved = true;
+
+function updateLineNumbers() {
+  const lines = editor.value.split('\n').length;
+  lineNums.innerHTML = Array.from({ length: lines }, (_, i) => `<span>${i + 1}</span>`).join('');
+}
+
+function updateCursor() {
+  const text = editor.value.substring(0, editor.selectionStart);
+  const lines = text.split('\n');
+  document.getElementById('editorCursorPos').textContent = `Ln ${lines.length}, Col ${lines[lines.length-1].length + 1}`;
+  document.getElementById('editorByteCount').textContent = `${new Blob([editor.value]).size} bytes`;
+}
+
+editor.addEventListener('input', () => {
+  saved = false;
+  statusEl.textContent = 'Unsaved';
+  statusEl.className = 'editor-status status-unsaved';
+  updateLineNumbers();
+});
+
+editor.addEventListener('keydown', e => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const start = editor.selectionStart, end = editor.selectionEnd;
+    editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
+    editor.selectionStart = editor.selectionEnd = start + 2;
+  }
+  if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveFile(); }
+  updateCursor();
+});
+
+editor.addEventListener('scroll', () => { lineNums.scrollTop = editor.scrollTop; });
+editor.addEventListener('click', updateCursor);
+
+async function saveFile() {
+  statusEl.textContent = 'Saving...';
+  statusEl.className = 'editor-status';
+  const res  = await fetch(`/servers/${SERVER_ID}/files/edit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path: FILE_PATH, content: editor.value }),
+  });
+  const data = await res.json();
+  if (data.success) {
+    saved = true;
+    statusEl.textContent = 'Saved ✓';
+    statusEl.className = 'editor-status status-saved';
+    setTimeout(() => { statusEl.textContent = 'Saved'; }, 2000);
+  } else {
+    statusEl.textContent = 'Error: ' + data.message;
+    statusEl.className = 'editor-status status-error';
+  }
+}
+
+window.addEventListener('beforeunload', e => {
+  if (!saved) { e.preventDefault(); return e.returnValue = ''; }
+});
+
+updateLineNumbers();
+updateCursor();
+</script>

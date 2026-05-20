@@ -1,0 +1,52 @@
+<div class="server-subnav">
+  <a href="/servers/<%= server._id %>" class="subnav-item">CONSOLE</a>
+  <a href="/servers/<%= server._id %>/files" class="subnav-item">FILES</a>
+  <a href="/servers/<%= server._id %>/schedules" class="subnav-item">SCHEDULES</a>
+  <a href="/servers/<%= server._id %>/subusers" class="subnav-item active">SUB-USERS</a>
+</div>
+<div class="panel">
+  <div class="panel-header"><h2 class="panel-title">SUB-USERS — <%= server.name %></h2></div>
+  <div class="panel-body">
+    <p class="panel-desc">Give other users limited access to this server.</p>
+    <div class="subuser-add-form">
+      <input type="email" id="suEmail" class="form-input" placeholder="User's email address" />
+      <div class="subuser-perms">
+        <% ALL_PERMS.forEach(p => { %><label class="perm-check"><input type="checkbox" class="su-perm" value="<%= p %>" checked /> <%= p %></label><% }) %>
+      </div>
+      <button class="btn btn-primary" onclick="addSub()">ADD</button>
+    </div>
+    <div id="suRes" style="display:none;margin-bottom:12px"></div>
+    <% if (!subusers.length) { %>
+      <div class="empty-state"><p>No sub-users yet.</p></div>
+    <% } else { %>
+      <table class="data-table">
+        <thead><tr><th>USER</th><th>EMAIL</th><th>PERMISSIONS</th><th>ACTIONS</th></tr></thead>
+        <tbody>
+          <% subusers.forEach(su => { %>
+          <tr>
+            <td><strong><%= su.userInfo ? su.userInfo.username : 'Unknown' %></strong></td>
+            <td><%= su.userInfo ? su.userInfo.email : '—' %></td>
+            <td><%= (su.permissions||[]).map(p => `<span class="badge" style="margin-right:3px">${p}</span>`).join('') %></td>
+            <td>
+              <form method="POST" action="/servers/<%= server._id %>/subusers/<%= su._id %>/remove" style="display:inline" onsubmit="return confirm('Remove?')">
+                <button class="btn btn-sm btn-danger">REMOVE</button>
+              </form>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>
+<script>
+async function addSub() {
+  const email = document.getElementById('suEmail').value.trim();
+  const perms = [...document.querySelectorAll('.su-perm:checked')].map(c=>c.value);
+  const res   = await fetch('/servers/<%= server._id %>/subusers/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,permissions:perms})});
+  const data  = await res.json();
+  const el    = document.getElementById('suRes');
+  el.style.display='block'; el.className='acct-result '+(data.success?'acct-success':'acct-error'); el.textContent=data.message;
+  if(data.success){document.getElementById('suEmail').value='';setTimeout(()=>location.reload(),1000);}
+}
+</script>

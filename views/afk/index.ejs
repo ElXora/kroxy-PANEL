@@ -1,0 +1,94 @@
+<div class="afk-page">
+  <div class="afk-hero">
+    <div class="afk-orb" id="afkOrb">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <h2 class="afk-title">AFK COINS</h2>
+    <p class="afk-desc">Stay on this page to earn <strong class="kxy-highlight">KXY</strong> automatically.<br/>You earn <strong>+<%= afkRewardKxy %> KXY</strong> every <strong><%= afkIntervalSec %> seconds</strong>.</p>
+  </div>
+
+  <div class="afk-stats-row">
+    <div class="afk-stat">
+      <span class="afk-stat-val" id="kxy-balance"><%= kxy %></span>
+      <span class="afk-stat-label">YOUR KXY</span>
+    </div>
+    <div class="afk-stat afk-stat-center">
+      <span class="afk-stat-val" id="afk-countdown"><%= afkIntervalSec %>s</span>
+      <span class="afk-stat-label">NEXT REWARD</span>
+    </div>
+    <div class="afk-stat">
+      <span class="afk-stat-val" id="afk-earned-total">0</span>
+      <span class="afk-stat-label">EARNED THIS SESSION</span>
+    </div>
+  </div>
+
+  <div class="afk-progress-wrap">
+    <div class="afk-progress-bar">
+      <div class="afk-progress-fill" id="afkProgressFill" style="width:0%"></div>
+    </div>
+    <span class="afk-progress-label" id="afkProgressLabel">Starting...</span>
+  </div>
+
+  <div class="afk-toast-area" id="afkToastArea"></div>
+
+  <div class="afk-tip-box">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <p>Keep this tab open and active. Use KXY in the <a href="/store" class="link">Store</a> to buy RAM, Disk, CPU and Server Slots. Or redeem a coupon at <a href="/redeem" class="link">Redeem</a>.</p>
+  </div>
+</div>
+
+<script>
+const INTERVAL  = <%= afkIntervalSec %> * 1000;
+const REWARD    = <%= afkRewardKxy %>;
+let remaining   = INTERVAL;
+let earnedTotal = 0;
+
+const fill      = document.getElementById('afkProgressFill');
+const label     = document.getElementById('afkProgressLabel');
+const countdown = document.getElementById('afk-countdown');
+const balanceEl = document.getElementById('kxy-balance');
+const earnedEl  = document.getElementById('afk-earned-total');
+const orb       = document.getElementById('afkOrb');
+const toastArea = document.getElementById('afkToastArea');
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'afk-toast-popup';
+  t.textContent = msg;
+  toastArea.appendChild(t);
+  setTimeout(() => t.classList.add('show'), 10);
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 2500);
+}
+
+async function claimAfk() {
+  try {
+    const res  = await fetch('/afk/claim', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      earnedTotal += data.reward;
+      balanceEl.textContent = data.kxy;
+      earnedEl.textContent  = earnedTotal;
+      const sidebarKxy = document.getElementById('sidebar-kxy');
+      const topbarKxy  = document.getElementById('topbar-kxy-val');
+      if (sidebarKxy) sidebarKxy.textContent = data.kxy;
+      if (topbarKxy)  topbarKxy.textContent  = data.kxy;
+      orb.classList.add('orb-pulse');
+      setTimeout(() => orb.classList.remove('orb-pulse'), 600);
+      showToast(`+${data.reward} KXY earned!`);
+      remaining = INTERVAL;
+    } else {
+      remaining = (data.wait || 5) * 1000;
+    }
+  } catch(e) { remaining = INTERVAL; }
+}
+
+function tick() {
+  remaining = Math.max(0, remaining - 200);
+  const pct = ((INTERVAL - remaining) / INTERVAL) * 100;
+  fill.style.width  = pct + '%';
+  countdown.textContent = Math.ceil(remaining / 1000) + 's';
+  label.textContent = remaining === 0 ? 'Claiming...' : `${Math.ceil(remaining/1000)}s until next reward`;
+  if (remaining <= 0) { remaining = INTERVAL; claimAfk(); }
+}
+setInterval(tick, 200);
+</script>

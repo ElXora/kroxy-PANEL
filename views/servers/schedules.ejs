@@ -1,0 +1,59 @@
+<div class="server-subnav">
+  <a href="/servers/<%= server._id %>" class="subnav-item">CONSOLE</a>
+  <a href="/servers/<%= server._id %>/files" class="subnav-item">FILES</a>
+  <a href="/servers/<%= server._id %>/schedules" class="subnav-item active">SCHEDULES</a>
+  <a href="/servers/<%= server._id %>/subusers" class="subnav-item">SUB-USERS</a>
+</div>
+<div class="panel">
+  <div class="panel-header">
+    <h2 class="panel-title">SCHEDULES — <%= server.name %></h2>
+    <button class="btn btn-primary btn-sm" onclick="document.getElementById('sf').style.display='block'">+ NEW</button>
+  </div>
+  <div class="panel-body">
+    <div id="sf" style="display:none" class="schedule-form">
+      <form method="POST" action="/servers/<%= server._id %>/schedules/create">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">NAME</label><input type="text" name="name" class="form-input" placeholder="Nightly Restart" required /></div>
+          <div class="form-group"><label class="form-label">ACTION</label><select name="action" class="form-input form-select"><option value="command">Run Command</option><option value="restart">Restart</option><option value="stop">Stop</option><option value="start">Start</option></select></div>
+          <div class="form-group"><label class="form-label">PAYLOAD</label><input type="text" name="payload" class="form-input" placeholder="say Restarting..." /></div>
+        </div>
+        <div class="cron-row" style="margin-bottom:12px">
+          <div class="form-group"><label class="form-label">MINUTE</label><input type="text" name="cronMinute" class="form-input" value="0" /></div>
+          <div class="form-group"><label class="form-label">HOUR</label><input type="text" name="cronHour" class="form-input" value="4" /></div>
+          <div class="form-group"><label class="form-label">DAY</label><input type="text" name="cronDay" class="form-input" value="*" /></div>
+          <div class="form-group"><label class="form-label">MONTH</label><input type="text" name="cronMonth" class="form-input" value="*" /></div>
+          <div class="form-group"><label class="form-label">WEEKDAY</label><input type="text" name="cronWeekday" class="form-input" value="*" /></div>
+        </div>
+        <label class="toggle-label" style="margin-bottom:12px"><input type="checkbox" name="enabled" checked /><span class="toggle-switch"></span> ENABLED</label><br/>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button type="submit" class="btn btn-primary">CREATE</button>
+          <button type="button" class="btn btn-ghost" onclick="document.getElementById('sf').style.display='none'">CANCEL</button>
+        </div>
+      </form>
+    </div>
+    <% if (!schedules.length) { %>
+      <div class="empty-state"><p>No schedules yet.</p></div>
+    <% } else { %>
+      <table class="data-table">
+        <thead><tr><th>NAME</th><th>CRON</th><th>ACTION</th><th>PAYLOAD</th><th>LAST RUN</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+        <tbody>
+          <% schedules.forEach(s => { %>
+          <tr>
+            <td><strong><%= s.name %></strong></td>
+            <td><code><%= s.cron %></code></td>
+            <td><span class="badge"><%= s.action %></span></td>
+            <td><code><%= s.payload||'—' %></code></td>
+            <td class="file-size"><%= s.lastRun ? new Date(s.lastRun).toLocaleString() : 'Never' %></td>
+            <td><span class="badge <%= s.enabled?'badge-success':'badge-danger' %>"><%= s.enabled?'ACTIVE':'DISABLED' %></span></td>
+            <td>
+              <form method="POST" action="/servers/<%= server._id %>/schedules/<%= s._id %>/delete" style="display:inline" onsubmit="return confirm('Delete?')">
+                <button class="btn btn-sm btn-danger">DELETE</button>
+              </form>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</div>

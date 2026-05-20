@@ -1,0 +1,18 @@
+<% if (success && success.length) { %>
+  <% success.forEach(msg => { %>
+  <div class="flash flash-success">
+    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    <%= msg %>
+    <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+  </div>
+  <% }) %>
+<% } %>
+<% if (error && error.length) { %>
+  <% error.forEach(msg => { %>
+  <div class="flash flash-error">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <%= msg %>
+    <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+  </div>
+  <% }) %>
+<% } %>

@@ -1,0 +1,337 @@
+<div class="admin-wrap">
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+      <div class="stat-info"><span class="stat-value"><%= totalUsers %></span><span class="stat-label">TOTAL USERS</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><rect x="2" y="10" width="20" height="5" rx="1"/><rect x="2" y="17" width="20" height="5" rx="1"/></svg></div>
+      <div class="stat-info"><span class="stat-value"><%= totalServers %></span><span class="stat-label">TOTAL SERVERS</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg></div>
+      <div class="stat-info"><span class="stat-value"><%= runningServers %></span><span class="stat-label">RUNNING</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></div>
+      <div class="stat-info"><span class="stat-value"><%= coupons.length %></span><span class="stat-label">COUPONS</span></div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="admin-tabs">
+    <button class="admin-tab active" onclick="switchTab('users', this)">USERS</button>
+    <button class="admin-tab" onclick="switchTab('coupons', this)">COUPONS</button>
+    <button class="admin-tab" onclick="switchTab('settings', this)">SETTINGS</button>
+    <button class="admin-tab" onclick="switchTab('activity', this)">ACTIVITY</button>
+  </div>
+
+  <!-- USERS TAB -->
+  <div class="admin-tab-content" id="tab-users">
+    <!-- Create User -->
+    <div class="panel">
+      <div class="panel-header"><h2 class="panel-title">CREATE USER</h2></div>
+      <div class="panel-body">
+        <form method="POST" action="/admin/users/create">
+          <div class="form-row form-row-3">
+            <div class="form-group">
+              <label class="form-label">USERNAME</label>
+              <input type="text" name="username" class="form-input" placeholder="username" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">EMAIL</label>
+              <input type="email" name="email" class="form-input" placeholder="email@example.com" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">PASSWORD</label>
+              <input type="password" name="password" class="form-input" placeholder="min 8 chars" required />
+            </div>
+          </div>
+          <label class="toggle-label" style="margin-bottom:12px">
+            <input type="checkbox" name="isAdmin" />
+            <span class="toggle-switch"></span>
+            MAKE ADMIN
+          </label>
+          <br/>
+          <button type="submit" class="btn btn-primary">CREATE USER</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="panel">
+      <div class="panel-header"><h2 class="panel-title">ALL USERS (<%= users.length %>)</h2></div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead><tr><th>USERNAME</th><th>EMAIL</th><th>KXY</th><th>RAM</th><th>DISK</th><th>CPU</th><th>SERVERS</th><th>ROLE</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+          <tbody>
+            <% users.forEach(u => { %>
+            <tr>
+              <td><strong><%= u.username %></strong></td>
+              <td><%= u.email %></td>
+              <td><span class="kxy-badge"><%= u.kxy || 0 %></span></td>
+              <td><%= u.maxRamMB || 2048 %>MB</td>
+              <td><%= u.maxDiskGB || 10 %>GB</td>
+              <td><%= u.maxCpuPct || 100 %>%</td>
+              <td><%= u.maxServers || 3 %></td>
+              <td><span class="badge <%= u.isAdmin ? 'badge-admin' : '' %>"><%= u.isAdmin ? 'ADMIN' : 'USER' %></span></td>
+              <td><span class="badge <%= u.isBanned ? 'badge-danger' : 'badge-success' %>"><%= u.isBanned ? 'BANNED' : 'ACTIVE' %></span></td>
+              <td class="actions-cell">
+                <button class="btn btn-sm btn-ghost" onclick="openResourceModal('<%= u._id %>','<%= u.username %>',<%= u.kxy||0 %>,<%= u.maxRamMB||2048 %>,<%= u.maxDiskGB||10 %>,<%= u.maxCpuPct||100 %>,<%= u.maxServers||3 %>)">EDIT</button>
+                <% if (!u.isAdmin) { %>
+                  <form method="POST" action="/admin/users/<%= u._id %>/makeadmin" style="display:inline"><button class="btn btn-sm">MAKE ADMIN</button></form>
+                <% } else { %>
+                  <form method="POST" action="/admin/users/<%= u._id %>/removeadmin" style="display:inline"><button class="btn btn-sm btn-danger">REMOVE ADMIN</button></form>
+                <% } %>
+                <% if (!u.isBanned) { %>
+                  <form method="POST" action="/admin/users/<%= u._id %>/ban" style="display:inline" onsubmit="return confirm('Ban <%= u.username %>?')"><button class="btn btn-sm btn-danger">BAN</button></form>
+                <% } else { %>
+                  <form method="POST" action="/admin/users/<%= u._id %>/unban" style="display:inline"><button class="btn btn-sm btn-success">UNBAN</button></form>
+                <% } %>
+              </td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- COUPONS TAB -->
+  <div class="admin-tab-content" id="tab-coupons" style="display:none">
+    <div class="panel">
+      <div class="panel-header"><h2 class="panel-title">CREATE COUPON</h2></div>
+      <div class="panel-body">
+        <form method="POST" action="/admin/coupons/create">
+          <div class="form-row form-row-3">
+            <div class="form-group">
+              <label class="form-label">CODE <span class="required">*</span></label>
+              <input type="text" name="code" class="form-input" placeholder="SUMMER2024" style="text-transform:uppercase" required />
+              <span class="form-hint">Auto-uppercased. Users type this to redeem.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">KXY COINS</label>
+              <input type="number" name="kxy" class="form-input" value="0" min="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">EXTRA RAM (MB)</label>
+              <input type="number" name="ramMB" class="form-input" value="0" min="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">EXTRA DISK (GB)</label>
+              <input type="number" name="diskGB" class="form-input" value="0" min="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">EXTRA CPU (%)</label>
+              <input type="number" name="cpuPct" class="form-input" value="0" min="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">EXTRA SERVER SLOTS</label>
+              <input type="number" name="servers" class="form-input" value="0" min="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">MAX USES (0 = unlimited)</label>
+              <input type="number" name="maxUses" class="form-input" value="0" min="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">EXPIRES AT</label>
+              <input type="datetime-local" name="expiresAt" class="form-input" />
+              <span class="form-hint">Leave blank for no expiry.</span>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">CREATE COUPON</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><h2 class="panel-title">ALL COUPONS</h2></div>
+      <div class="panel-body">
+        <% if (!coupons.length) { %>
+          <p class="muted-text">No coupons yet.</p>
+        <% } else { %>
+          <table class="data-table">
+            <thead><tr><th>CODE</th><th>KXY</th><th>RAM</th><th>DISK</th><th>CPU</th><th>SERVERS</th><th>USES</th><th>EXPIRES</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+            <tbody>
+              <% coupons.forEach(c => { %>
+              <tr>
+                <td><code class="coupon-code"><%= c.code %></code></td>
+                <td><%= c.kxy || 0 %> KXY</td>
+                <td><%= c.ramMB  || 0 %>MB</td>
+                <td><%= c.diskGB || 0 %>GB</td>
+                <td><%= c.cpuPct || 0 %>%</td>
+                <td><%= c.servers || 0 %></td>
+                <td><%= c.uses %>/<%= c.maxUses || '∞' %></td>
+                <td><%= c.expiresAt ? new Date(c.expiresAt).toLocaleDateString() : 'Never' %></td>
+                <td>
+                  <button class="badge <%= c.active ? 'badge-success' : 'badge-danger' %>" style="cursor:pointer;border:none" onclick="toggleCoupon('<%= c._id %>', this)">
+                    <%= c.active ? 'ACTIVE' : 'DISABLED' %>
+                  </button>
+                </td>
+                <td>
+                  <form method="POST" action="/admin/coupons/<%= c._id %>/delete" style="display:inline" onsubmit="return confirm('Delete coupon?')">
+                    <button class="btn btn-sm btn-danger">DELETE</button>
+                  </form>
+                </td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div class="admin-tab-content" id="tab-settings" style="display:none">
+    <div class="panel">
+      <div class="panel-header"><h2 class="panel-title">PANEL SETTINGS</h2></div>
+      <div class="panel-body">
+        <form method="POST" action="/admin/settings">
+          <h3 class="form-section-title">ECONOMY</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">DAILY REWARD (KXY)</label>
+              <input type="number" name="daily_reward_kxy" class="form-input" value="50" min="1" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">AFK REWARD (KXY)</label>
+              <input type="number" name="afk_reward_kxy" class="form-input" value="5" min="1" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">AFK INTERVAL (seconds)</label>
+              <input type="number" name="afk_interval_sec" class="form-input" value="60" min="10" />
+            </div>
+          </div>
+          <h3 class="form-section-title" style="margin-top:20px">DEFAULT USER RESOURCES (on register)</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">DEFAULT MAX RAM (MB)</label>
+              <input type="number" name="default_max_ram" class="form-input" value="2048" min="512" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">DEFAULT MAX DISK (GB)</label>
+              <input type="number" name="default_max_disk" class="form-input" value="10" min="1" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">DEFAULT MAX CPU (%)</label>
+              <input type="number" name="default_max_cpu" class="form-input" value="100" min="50" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">DEFAULT MAX SERVERS</label>
+              <input type="number" name="default_max_servers" class="form-input" value="3" min="1" />
+            </div>
+          </div>
+          <h3 class="form-section-title" style="margin-top:20px">GENERAL</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">MAX SERVERS PER USER</label>
+              <input type="number" name="max_servers_per_user" class="form-input" value="3" min="1" />
+            </div>
+          </div>
+          <label class="toggle-label" style="margin:12px 0">
+            <input type="checkbox" name="registration_enabled" checked />
+            <span class="toggle-switch"></span>
+            REGISTRATION ENABLED
+          </label>
+          <br/><br/>
+          <button type="submit" class="btn btn-primary">SAVE SETTINGS</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY TAB -->
+  <div class="admin-tab-content" id="tab-activity" style="display:none">
+    <div class="panel">
+      <div class="panel-header"><h2 class="panel-title">RECENT ACTIVITY</h2></div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead><tr><th>ACTION</th><th>DETAILS</th><th>TIME</th></tr></thead>
+          <tbody>
+            <% activity.forEach(a => { %>
+            <tr>
+              <td><span class="badge badge-action"><%= a.action %></span></td>
+              <td><%= a.details %></td>
+              <td><%= new Date(a.createdAt).toLocaleString() %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Resource Edit Modal -->
+<div class="modal-overlay" id="resourceModal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">EDIT RESOURCES — <span id="modalUsername"></span></h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <form method="POST" id="resourceForm">
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">KXY COINS</label>
+            <input type="number" name="kxy" id="modal-kxy" class="form-input" min="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">MAX RAM (MB)</label>
+            <input type="number" name="maxRamMB" id="modal-ram" class="form-input" min="512" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">MAX DISK (GB)</label>
+            <input type="number" name="maxDiskGB" id="modal-disk" class="form-input" min="1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">MAX CPU (%)</label>
+            <input type="number" name="maxCpuPct" id="modal-cpu" class="form-input" min="50" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">MAX SERVERS</label>
+            <input type="number" name="maxServers" id="modal-servers" class="form-input" min="1" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">CANCEL</button>
+        <button type="submit" class="btn btn-primary">SAVE</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function switchTab(name, btn) {
+  document.querySelectorAll('.admin-tab-content').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.admin-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).style.display = 'block';
+  btn.classList.add('active');
+}
+
+function openResourceModal(id, username, kxy, ram, disk, cpu, servers) {
+  document.getElementById('modalUsername').textContent = username;
+  document.getElementById('resourceForm').action = `/admin/users/${id}/resources`;
+  document.getElementById('modal-kxy').value     = kxy;
+  document.getElementById('modal-ram').value     = ram;
+  document.getElementById('modal-disk').value    = disk;
+  document.getElementById('modal-cpu').value     = cpu;
+  document.getElementById('modal-servers').value = servers;
+  document.getElementById('resourceModal').style.display = 'flex';
+}
+function closeModal() { document.getElementById('resourceModal').style.display = 'none'; }
+
+async function toggleCoupon(id, badge) {
+  const res = await fetch(`/admin/coupons/${id}/toggle`, { method: 'POST' });
+  const data = await res.json();
+  if (data.success) {
+    badge.textContent = data.active ? 'ACTIVE' : 'DISABLED';
+    badge.className = 'badge ' + (data.active ? 'badge-success' : 'badge-danger');
+  }
+}
+</script>

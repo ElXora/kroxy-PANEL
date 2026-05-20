@@ -1,0 +1,93 @@
+<div class="account-page">
+  <div class="account-grid">
+
+    <!-- Profile info -->
+    <div class="panel">
+      <div class="panel-header"><h2 class="panel-title">PROFILE</h2></div>
+      <div class="panel-body">
+        <div class="account-avatar-row">
+          <div class="account-avatar"><%= user.username[0].toUpperCase() %></div>
+          <div>
+            <div class="account-username"><%= user.username %></div>
+            <div class="account-email"><%= user.email %></div>
+            <div class="account-role"><span class="badge <%= user.isAdmin?'badge-admin':'' %>"><%= user.isAdmin?'ADMINISTRATOR':'USER' %></span></div>
+          </div>
+        </div>
+        <div class="account-stats">
+          <div class="acct-stat"><span class="acct-stat-val"><%= user.kxy||0 %></span><span class="acct-stat-label">KXY</span></div>
+          <div class="acct-stat"><span class="acct-stat-val"><%= user.dailyStreak||0 %></span><span class="acct-stat-label">DAY STREAK</span></div>
+          <div class="acct-stat"><span class="acct-stat-val"><%= user.maxServers||3 %></span><span class="acct-stat-label">SERVER SLOTS</span></div>
+          <div class="acct-stat"><span class="acct-stat-val"><%= user.maxRamMB||2048 %>MB</span><span class="acct-stat-label">RAM</span></div>
+        </div>
+        <div class="acct-joined">Member since <%= new Date(user.createdAt).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) %></div>
+      </div>
+    </div>
+
+    <!-- Change Email -->
+    <div class="panel">
+      <div class="panel-header"><h2 class="panel-title">CHANGE EMAIL</h2></div>
+      <div class="panel-body">
+        <div class="form-group">
+          <label class="form-label">NEW EMAIL ADDRESS</label>
+          <input type="email" id="newEmail" class="form-input" placeholder="new@example.com" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">CURRENT PASSWORD <span class="required">*</span></label>
+          <input type="password" id="emailCurrentPwd" class="form-input" placeholder="Enter your current password" />
+        </div>
+        <button class="btn btn-primary" onclick="changeEmail()">UPDATE EMAIL</button>
+        <div class="acct-result" id="emailResult" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Change Password -->
+    <div class="panel">
+      <div class="panel-header"><h2 class="panel-title">CHANGE PASSWORD</h2></div>
+      <div class="panel-body">
+        <div class="form-group">
+          <label class="form-label">CURRENT PASSWORD <span class="required">*</span></label>
+          <input type="password" id="currentPwd" class="form-input" placeholder="Your current password" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">NEW PASSWORD</label>
+          <input type="password" id="newPwd" class="form-input" placeholder="Min 8 characters" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">CONFIRM NEW PASSWORD</label>
+          <input type="password" id="confirmPwd" class="form-input" placeholder="Repeat new password" />
+        </div>
+        <button class="btn btn-primary" onclick="changePassword()">UPDATE PASSWORD</button>
+        <div class="acct-result" id="pwdResult" style="display:none"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+async function changeEmail() {
+  const res  = await fetch('/account/change-email', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newEmail: document.getElementById('newEmail').value, currentPassword: document.getElementById('emailCurrentPwd').value }),
+  });
+  const data = await res.json();
+  const el   = document.getElementById('emailResult');
+  el.style.display = 'block';
+  el.className  = 'acct-result ' + (data.success ? 'acct-success' : 'acct-error');
+  el.textContent = data.message;
+  if (data.success) { document.getElementById('newEmail').value = ''; document.getElementById('emailCurrentPwd').value = ''; }
+}
+
+async function changePassword() {
+  const res  = await fetch('/account/change-password', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword: document.getElementById('currentPwd').value, newPassword: document.getElementById('newPwd').value, confirmPassword: document.getElementById('confirmPwd').value }),
+  });
+  const data = await res.json();
+  const el   = document.getElementById('pwdResult');
+  el.style.display = 'block';
+  el.className  = 'acct-result ' + (data.success ? 'acct-success' : 'acct-error');
+  el.textContent = data.message;
+  if (data.success) setTimeout(() => location.href = '/logout', 1500);
+}
+</script>

@@ -1,0 +1,189 @@
+<div class="create-server-wrap">
+  <div class="panel create-panel">
+    <div class="panel-header">
+      <h2 class="panel-title">CREATE NEW SERVER</h2>
+    </div>
+    <div class="panel-body">
+      <form method="POST" action="/servers/create" id="createForm">
+
+        <!-- Game -->
+        <div class="form-section">
+          <h3 class="form-section-title">SELECT GAME</h3>
+          <div class="game-grid">
+            <div class="game-card selected">
+              <div class="game-icon"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div>
+              <span class="game-name">Minecraft</span><span class="game-tag">JAVA</span>
+            </div>
+            <div class="game-card disabled"><div class="game-icon"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="3"/></svg></div><span class="game-name">CS2</span><span class="game-tag">SOON</span></div>
+            <div class="game-card disabled"><div class="game-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg></div><span class="game-name">Valheim</span><span class="game-tag">SOON</span></div>
+            <div class="game-card disabled"><div class="game-icon"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 22,22 2,22"/></svg></div><span class="game-name">Terraria</span><span class="game-tag">SOON</span></div>
+          </div>
+          <input type="hidden" name="game" value="minecraft" />
+        </div>
+
+        <!-- Node selection -->
+        <div class="form-section">
+          <h3 class="form-section-title">SELECT NODE / LOCATION</h3>
+          <div class="node-select-grid" id="nodeGrid">
+            <% nodes.forEach((n, i) => { %>
+            <label class="node-select-card">
+              <input type="radio" name="nodeId" value="<%= n._id %>" <%= i === 0 ? 'checked' : '' %>
+                data-ip="<%= n.ip %>"
+                data-fqdn="<%= n.cfEnabled && n.cfPublicHostname ? n.cfPublicHostname : (n.fqdn || n.ip) %>"
+                data-daemon="<%= n.daemonPort || 3002 %>"
+                onchange="onNodeChange(this)" />
+              <div class="node-select-inner">
+                <div class="node-select-top">
+                  <span class="status-dot status-running"></span>
+                  <span class="node-select-name"><%= n.name %></span>
+                  <span class="node-select-region"><%= n.region %></span>
+                </div>
+                <div class="node-select-info">
+                  <code><%= n.cfEnabled && n.cfPublicHostname ? n.cfPublicHostname : (n.fqdn || n.ip) %></code>
+                  <span class="node-select-cap"><%= n.serverCount || 0 %>/<%= n.maxServers %> servers</span>
+                </div>
+                <div class="node-select-resources">
+                  <span>RAM: <%= n.totalRamMB %>MB</span>
+                  <span>CPU: <%= n.totalCpuPct %>%</span>
+                  <span>Disk: <%= n.totalDiskGB %>GB</span>
+                </div>
+              </div>
+            </label>
+            <% }) %>
+          </div>
+
+          <!-- Daemon port (shown per node) -->
+          <div class="daemon-info-box" id="daemonInfoBox">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><line x1="12" y1="8" x2="5" y2="16"/><line x1="12" y1="8" x2="19" y2="16"/></svg>
+            <div>
+              <span>Node IP: <strong id="daemon-ip"><%= nodes[0] ? nodes[0].ip : '—' %></strong></span>
+              &nbsp;·&nbsp;
+              <span>Connect via: <strong id="daemon-fqdn"><%= nodes[0] ? (nodes[0].cfEnabled && nodes[0].cfPublicHostname ? nodes[0].cfPublicHostname : nodes[0].fqdn || nodes[0].ip) : '—' %></strong></span>
+              &nbsp;·&nbsp;
+              <span>Daemon Port: <strong id="daemon-port-display"><%= nodes[0] ? (nodes[0].daemonPort || 3002) : 3002 %></strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Server details -->
+        <div class="form-section">
+          <h3 class="form-section-title">SERVER DETAILS</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">SERVER NAME <span class="required">*</span></label>
+              <input type="text" name="name" class="form-input" placeholder="My Awesome Server" required maxlength="32"
+                oninput="document.getElementById('sum-name').textContent=this.value||'—'" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">MC VERSION</label>
+              <select name="version" class="form-input form-select" onchange="document.getElementById('sum-version').textContent=this.value">
+                <% mcVersions.forEach(v => { %>
+                <option value="<%= v %>" <%= v==='LATEST'?'selected':'' %>><%= v %></option>
+                <% }) %>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resources -->
+        <div class="form-section">
+          <h3 class="form-section-title">RESOURCES <span class="form-section-subtitle">— Your allocation: <%= user.maxRamMB||2048 %>MB RAM · <%= user.maxCpuPct||100 %>% CPU · <%= user.maxDiskGB||10 %>GB Disk</span></h3>
+          <div class="form-row form-row-3">
+            <div class="form-group">
+              <label class="form-label">RAM (MB)</label>
+              <div class="ram-selector">
+                <% [512, 1024, 2048, 4096].filter(r => r <= (user.maxRamMB||2048)).forEach(r => { %>
+                <label class="ram-option">
+                  <input type="radio" name="ram" value="<%= r %>" <%= r===1024?'checked':'' %> onchange="document.getElementById('sum-ram').textContent=this.value>=1024?(this.value/1024)+'GB':this.value+'MB'" />
+                  <span><%= r>=1024?(r/1024)+'GB':r+'MB' %></span>
+                </label>
+                <% }) %>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">CPU (%)</label>
+              <input type="number" name="cpu" class="form-input" value="100" min="10" max="<%= user.maxCpuPct||100 %>"
+                oninput="document.getElementById('sum-cpu').textContent=this.value+'%'" />
+              <span class="form-hint">Max: <%= user.maxCpuPct||100 %>%</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">DISK (GB)</label>
+              <input type="number" name="disk" class="form-input" value="5" min="1" max="<%= user.maxDiskGB||10 %>"
+                oninput="document.getElementById('sum-disk').textContent=this.value+'GB'" />
+              <span class="form-hint">Max: <%= user.maxDiskGB||10 %>GB</span>
+            </div>
+          </div>
+
+          <!-- Port with random suggestion -->
+          <div class="form-group" style="max-width:300px">
+            <label class="form-label">SERVER PORT</label>
+            <div class="port-input-wrap">
+              <input type="number" name="port" id="portInput" class="form-input" value="<%= suggestedPort %>"
+                min="1024" max="65535" required oninput="updatePortSummary(this.value)" />
+              <button type="button" class="btn btn-ghost btn-sm" onclick="randomizePort()">RANDOM</button>
+            </div>
+            <span class="form-hint">Random 5-digit port suggested. Change if needed.</span>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="create-summary">
+          <div class="summary-row"><span>GAME</span><span>Minecraft (Java)</span></div>
+          <div class="summary-row"><span>NODE</span><span id="sum-node"><%= nodes[0]?nodes[0].name:'—' %></span></div>
+          <div class="summary-row"><span>CONNECT</span><span id="sum-connect"><%= nodes[0] ? (nodes[0].cfEnabled&&nodes[0].cfPublicHostname?nodes[0].cfPublicHostname:(nodes[0].fqdn||nodes[0].ip)) : '—' %>:<%= suggestedPort %></span></div>
+          <div class="summary-row"><span>NAME</span><span id="sum-name">—</span></div>
+          <div class="summary-row"><span>VERSION</span><span id="sum-version">LATEST</span></div>
+          <div class="summary-row"><span>RAM</span><span id="sum-ram">1GB</span></div>
+          <div class="summary-row"><span>CPU</span><span id="sum-cpu">100%</span></div>
+          <div class="summary-row"><span>DISK</span><span id="sum-disk">5GB</span></div>
+          <div class="summary-row"><span>PORT</span><span id="sum-port"><%= suggestedPort %></span></div>
+        </div>
+
+        <div class="form-actions">
+          <a href="/servers" class="btn btn-ghost">CANCEL</a>
+          <button type="submit" class="btn btn-primary" id="createBtn">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            CREATE SERVER
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function onNodeChange(radio) {
+  const ip     = radio.dataset.ip;
+  const fqdn   = radio.dataset.fqdn;
+  const daemon = radio.dataset.daemon;
+  const name   = radio.closest('.node-select-card').querySelector('.node-select-name').textContent;
+  document.getElementById('daemon-ip').textContent           = ip;
+  document.getElementById('daemon-fqdn').textContent         = fqdn;
+  document.getElementById('daemon-port-display').textContent = daemon;
+  document.getElementById('sum-node').textContent            = name;
+  updateConnectSummary(fqdn);
+}
+
+function updateConnectSummary(fqdn) {
+  const port = document.getElementById('portInput').value;
+  document.getElementById('sum-connect').textContent = (fqdn || '—') + ':' + port;
+}
+
+function updatePortSummary(port) {
+  document.getElementById('sum-port').textContent = port;
+  const fqdn = document.getElementById('daemon-fqdn').textContent;
+  document.getElementById('sum-connect').textContent = fqdn + ':' + port;
+}
+
+async function randomizePort() {
+  const port = Math.floor(Math.random() * (65535 - 25000 + 1)) + 25000;
+  document.getElementById('portInput').value = port;
+  updatePortSummary(port);
+}
+
+document.getElementById('createForm').addEventListener('submit', () => {
+  const btn = document.getElementById('createBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> CREATING...';
+});
+</script>
